@@ -104,7 +104,7 @@ private[kinesis] class KinesisSource(
     val prevBatchId = currentShardOffsets.getOrElse(defaultOffset).batchId
     val prevShardsInfo = prevBatchShardInfo(prevBatchId)
 
-    val latestShardInfo: Seq[ShardInfo] = {
+    val latestShardInfo: Array[ShardInfo] = {
       if (latestDescribeShardTimestamp == -1 ||
         ((latestDescribeShardTimestamp + describeShardInterval) < System.currentTimeMillis())) {
         val latestShards = kinesisReader.getShards()
@@ -118,17 +118,13 @@ private[kinesis] class KinesisSource(
       else {
         prevShardsInfo
       }
-    }
-    // remove those shards from the list for which we have already reached the end
-    val shardInfos: Array[ShardInfo] = latestShardInfo.filter {
-      s: (ShardInfo) => !(s.iteratorType.contains(new ShardEnd().iteratorType))
     }.toArray
 
-    // update currentShardOffsets only when shardInfos is not empty
+    // update currentShardOffsets only when latestShardInfo is not empty
     // else use last batch's ShardOffsets.
     // Since there wont be any change in offset, no new batch will be triggered
-    if (shardInfos.nonEmpty) {
-      currentShardOffsets = Some(new ShardOffsets(prevBatchId + 1, streamName, shardInfos))
+    if (latestShardInfo.nonEmpty) {
+      currentShardOffsets = Some(new ShardOffsets(prevBatchId + 1, streamName, latestShardInfo))
     }
 
     currentShardOffsets match {
