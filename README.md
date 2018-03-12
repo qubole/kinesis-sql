@@ -106,4 +106,4 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 
 ## Acknowledgement
 
-This connector would not have been possible without reference implemetation of [Kafka connector](https://github.com/apache/spark/tree/branch-2.2/external/kafka-0-10-sql) for Structured streaming, [Kinesis Connector](https://github.com/apache/spark/tree/branch-2.2/external/kinesis-asl) for Legacy Streaming and [Kineis Client Library](https://github.com/awslabs/amazon-kinesis-client). Structure of some part of the code is influenced by the excellent work done by various Apache Spark Contributors.
+This connector would not have been possible without reference implemetation of [Kafka connector](https://github.com/apache/spark/tree/branch-2.2/external/kafka-0-10-sql) for Structured streaming, [Kinesis Connector](https://github.com/apache/spark/tree/branch-2.2/external/kinesis-asl) for Legacy Streaming and [Kinesis Client Library](https://github.com/awslabs/amazon-kinesis-client). Structure of some part of the code is influenced by the excellent work done by various Apache Spark Contributors.
