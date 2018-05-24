@@ -29,8 +29,8 @@ import org.apache.spark.util.SerializableConfiguration
 
 class HDFSMetaDataCommiterSuite extends SparkFunSuite with SharedSQLContext {
 
-  val conf: Configuration = new Configuration()
-  val serializedConf = new SerializableConfiguration(conf)
+  val testConf: Configuration = new Configuration()
+  val serializedConf = new SerializableConfiguration(testConf)
 
   test("Add and Get operation") {
     withTempDir { temp =>

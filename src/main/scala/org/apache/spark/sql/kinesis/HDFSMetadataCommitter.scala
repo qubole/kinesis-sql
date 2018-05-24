@@ -25,8 +25,8 @@ import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{CreateFlag, FileContext, Path, PathFilter}
 import org.apache.hadoop.fs.permission.FsPermission
-import org.json4s.jackson.Serialization
 import org.json4s.NoTypeHints
+import org.json4s.jackson.Serialization
 import scala.reflect.ClassTag
 
 import org.apache.spark.internal.Logging
