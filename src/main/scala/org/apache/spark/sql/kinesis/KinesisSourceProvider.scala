@@ -17,12 +17,16 @@
 
 package org.apache.spark.sql.kinesis
 
+import java.{util => ju}
 import java.util.Locale
+
+import scala.collection.JavaConverters._
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.execution.streaming.Source
+import org.apache.spark.sql.execution.streaming.{Sink, Source}
 import org.apache.spark.sql.sources._
+import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 
  /*
@@ -33,6 +37,7 @@ import org.apache.spark.sql.types.StructType
 
 private[kinesis] class KinesisSourceProvider extends DataSourceRegister
   with StreamSourceProvider
+  with StreamSinkProvider
   with Logging {
 
   import KinesisSourceProvider._
@@ -100,6 +105,33 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     }
   }
 
+  override def createSink(
+                           sqlContext: SQLContext,
+                           parameters: Map[String, String],
+                           partitionColumns: Seq[String],
+                           outputMode: OutputMode): Sink = {
+    val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
+
+    val specifiedKinesisParams =
+      parameters
+        .keySet
+        .filter(_.toLowerCase(Locale.ROOT).startsWith("kinesis."))
+        .map { k => k.drop(8).toString -> parameters(k) }
+        .toMap
+
+    val streamName = caseInsensitiveParams(SINK_STREAM_NAME_KEY)
+    val endpointUrl = caseInsensitiveParams.getOrElse(SINK_ENDPOINT_URL,
+      DEFAULT_KINESIS_ENDPOINT_URL)
+
+    val region = caseInsensitiveParams.getOrElse(SINK_REGION_NAME_KEY, DEFAULT_KINESIS_REGION_NAME)
+    val awsAccessKeyId = caseInsensitiveParams.getOrElse(SINK_AWS_ACCESS_KEY_ID, "")
+    val awsSecretKey = caseInsensitiveParams.getOrElse(SINK_AWS_SECRET_KEY, "")
+    val kinesisCredsProvider: BasicCredentials = BasicCredentials(awsAccessKeyId, awsSecretKey)
+
+    new KinesisSink(sqlContext, specifiedKinesisParams, streamName, outputMode,
+      endpointUrl, kinesisCredsProvider)
+  }
+
 }
 
 private[kinesis] object KinesisSourceProvider extends Logging {
@@ -110,6 +142,13 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val AWS_ACCESS_KEY_ID = "awsaccesskeyid"
   private[kinesis] val AWS_SECRET_KEY = "awssecretkey"
   private[kinesis] val STARTING_POSITION_KEY = "startingposition"
+
+  private[kinesis] val SINK_STREAM_NAME_KEY = "sinkstreamname"
+  private[kinesis] val SINK_ENDPOINT_URL = "sinkendpointurl"
+  private[kinesis] val SINK_REGION_NAME_KEY = "sinkregionname"
+  private[kinesis] val SINK_AWS_ACCESS_KEY_ID = "sinkawsaccesskeyid"
+  private[kinesis] val SINK_AWS_SECRET_KEY = "sinkawssecretkey"
+
 
   private[kinesis] def getKinesisPosition(
       params: Map[String, String]): KinesisPosition = {
