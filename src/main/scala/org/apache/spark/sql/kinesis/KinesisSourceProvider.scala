@@ -17,10 +17,7 @@
 
 package org.apache.spark.sql.kinesis
 
-import java.{util => ju}
 import java.util.Locale
-
-import scala.collection.JavaConverters._
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SQLContext
@@ -128,7 +125,7 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     val awsSecretKey = caseInsensitiveParams.getOrElse(SINK_AWS_SECRET_KEY, "")
     val kinesisCredsProvider: BasicCredentials = BasicCredentials(awsAccessKeyId, awsSecretKey)
 
-    new KinesisSink(sqlContext, specifiedKinesisParams, streamName, outputMode,
+    new KinesisSink(sqlContext, caseInsensitiveParams, streamName, outputMode,
       endpointUrl, kinesisCredsProvider)
   }
 

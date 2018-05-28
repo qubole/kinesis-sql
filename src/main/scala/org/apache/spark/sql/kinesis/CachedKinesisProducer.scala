@@ -65,10 +65,10 @@ private[kinesis] object CachedKinesisProducer extends Logging {
 
   private def createKinesisProducer(producerConfiguration: ju.Map[String, Object]): Producer = {
     val awsAccessKeyId = producerConfiguration.getOrDefault(
-      KinesisSourceProvider.AWS_ACCESS_KEY_ID, "").toString
+      KinesisSourceProvider.SINK_AWS_ACCESS_KEY_ID, "").toString
 
     val awsSecretKey = producerConfiguration.getOrDefault(
-      KinesisSourceProvider.AWS_SECRET_KEY, "").toString
+      KinesisSourceProvider.SINK_AWS_SECRET_KEY, "").toString
 
     val region = producerConfiguration.getOrDefault(
       KinesisSourceProvider.REGION_NAME_KEY, "us-east-1").toString

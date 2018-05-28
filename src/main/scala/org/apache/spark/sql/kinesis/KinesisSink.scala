@@ -17,8 +17,6 @@
 
 package org.apache.spark.sql.kinesis
 
-import java.{util => ju}
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.sql.execution.streaming.Sink
