@@ -139,7 +139,6 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   // Sink Options
   private[kinesis] val SINK_STREAM_NAME_KEY = "sink.streamname"
   private[kinesis] val SINK_ENDPOINT_URL = "sink.endpointurl"
-  private[kinesis] val SINK_REGION_NAME_KEY = "sink.regionname"
   private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME_NAME = "sink.recordMaxBufferedTime"
   private[kinesis] val SINK_MAX_CONNECTIONS_NAME = "sink.maxConnections"
 

@@ -203,8 +203,7 @@ class KinesisSinkSuite extends KinesisSinkTest {
       "sink.StreamName" -> testUtils.streamName,
       "sink.EndpointUrl" -> testUtils.endpointUrl,
       "AWSAccessKeyId" -> KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId,
-      "AWSSecretKey" -> KinesisTestUtils.getAWSCredentials().getAWSSecretKey,
-      "regionName" -> KinesisTestUtils.regionName
+      "AWSSecretKey" -> KinesisTestUtils.getAWSCredentials().getAWSSecretKey
     )
 
     val reader = createKinesisReader()

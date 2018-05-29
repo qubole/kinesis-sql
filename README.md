@@ -83,6 +83,23 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 	|   Connector|    1|
 	+------------+-----+ 
 
+###### Using the Kinesis Sink
+    // Cast data into string and group by data column
+        scala> :paste
+        kinesis
+        .selectExpr("CAST(rand() AS STRING) as partitionKey","CAST(data AS STRING)").as[(String,String)]
+        .groupBy("data").count()
+  	    .writeStream
+  	    .format("kinesis")
+        .outputMode("update") 
+        .option("sink.streamName", "spark-sink-example")
+        .option("sink.endpointUrl", "https://kinesis.us-east-1.amazonaws.com")
+        .option("awsAccessKeyId", [ACCESS_KEY])
+        .option("awsSecretKey", [SECRET_KEY])
+        .option("awsSecretKey", [SECRET_KEY])
+  	    .start()
+  	    .awaitTermination()
+
 ## Kinesis Source Configuration 
 
  Option-Name        | Default-Value           | Description  |
@@ -98,6 +115,16 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 | kinesis.executor.maxRecordPerRead |     10000 |  Maximum Number of records to fetch per getRecords API call  |
 | kinesis.client.numRetries |     3 |  Maximum Number of retries for Kinesis API requests  |
 | kinesis.client.retryIntervalMs |     1000 |  Cool-off period before retrying Kinesis API  |
+
+## Kinesis Sink Configuration
+ Option-Name        | Default-Value           | Description  |
+| ------------- |:-------------:| -----:|
+| sink.streamName   | - | Name of the stream in Kinesis to write to|
+| sink.endpointUrl  | https://kinesis.us-east-1.amazonaws.com |  The aws endpoint of the kinesis Stream |
+| awsAccessKeyId |    -     |    AWS Credentials for  Kinesis describe, read record operations    
+| awsSecretKey |      -  |    AWS Credentials for  Kinesis describe, read record |
+| kinesis.recordMaxBufferedTime | 1000 (millis) | Specify the maximum buffered time of a record |
+| kinesis.maxConnections | 1 | Specify the maximum connections to Kinesis | 
 
 ## Roadmap
 *  Above library has been developed and tested against Spark 2.2.x.  We need to migrate to DataSource V2 APIs released in Spark 2.3.0
