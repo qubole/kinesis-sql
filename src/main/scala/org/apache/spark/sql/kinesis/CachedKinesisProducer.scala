@@ -16,10 +16,9 @@
  */
 package org.apache.spark.sql.kinesis
 
-import java.{util => ju}
+import java.util.Locale
 import java.util.concurrent.{ExecutionException, TimeUnit}
 
-import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
@@ -30,7 +29,6 @@ import com.google.common.util.concurrent.{ExecutionError, UncheckedExecutionExce
 import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 
-
 private[kinesis] object CachedKinesisProducer extends Logging {
 
   private type Producer = KinesisProducer
@@ -38,10 +36,9 @@ private[kinesis] object CachedKinesisProducer extends Logging {
   private lazy val cacheExpireTimeout: Long =
     SparkEnv.get.conf.getTimeAsMs("spark.kinesis.producer.cache.timeout", "10m")
 
-
   private val cacheLoader = new CacheLoader[Seq[(String, Object)], Producer] {
     override def load(config: Seq[(String, Object)]): Producer = {
-      val configMap = config.map(x => x._1 -> x._2).toMap.asJava
+      val configMap = config.map(x => x._1 -> x._2.toString).toMap
       createKinesisProducer(configMap)
     }
   }
@@ -63,19 +60,35 @@ private[kinesis] object CachedKinesisProducer extends Logging {
       .removalListener(removalListener)
       .build[Seq[(String, Object)], Producer](cacheLoader)
 
-  private def createKinesisProducer(producerConfiguration: ju.Map[String, Object]): Producer = {
-    val awsAccessKeyId = producerConfiguration.getOrDefault(
-      KinesisSourceProvider.SINK_AWS_ACCESS_KEY_ID, "").toString
+  private def createKinesisProducer(producerConfiguration: Map[String, String]): Producer = {
+    val kinesisParams = producerConfiguration.keySet
+      .filter(_.toLowerCase(Locale.ROOT).startsWith("kinesis."))
+      .map { k => k.drop(8).toString -> producerConfiguration(k) }
+      .toMap
 
-    val awsSecretKey = producerConfiguration.getOrDefault(
-      KinesisSourceProvider.SINK_AWS_SECRET_KEY, "").toString
+    val recordMaxBufferedTime = kinesisParams.getOrElse(
+      KinesisSourceProvider.SINK_RECORD_MAX_BUFFERED_TIME_NAME,
+      KinesisSourceProvider.DEFAULT_SINK_RECORD_MAX_BUFFERED_TIME)
+      .toLong
 
-    val region = producerConfiguration.getOrDefault(
-      KinesisSourceProvider.REGION_NAME_KEY, "us-east-1").toString
+    val maxConnections = kinesisParams.getOrElse(
+      KinesisSourceProvider.SINK_MAX_CONNECTIONS_NAME,
+      KinesisSourceProvider.DEFAULT_SINK_MAX_CONNECTIONS)
+      .toInt
+
+    val awsAccessKeyId = producerConfiguration.getOrElse(
+      KinesisSourceProvider.AWS_ACCESS_KEY_ID, "").toString
+
+    val awsSecretKey = producerConfiguration.getOrElse(
+      KinesisSourceProvider.AWS_SECRET_KEY, "").toString
+
+    val region = producerConfiguration.getOrElse(
+      KinesisSourceProvider.REGION_NAME_KEY, KinesisSourceProvider.DEFAULT_KINESIS_REGION_NAME)
+      .toString
 
     val kinesisProducer = new Producer(new KinesisProducerConfiguration()
-      .setRecordMaxBufferedTime(1000)
-      .setMaxConnections(1)
+      .setRecordMaxBufferedTime(recordMaxBufferedTime)
+      .setMaxConnections(maxConnections)
       .setCredentialsProvider(
         new AWSStaticCredentialsProvider(new BasicAWSCredentials(awsAccessKeyId, awsSecretKey))
       )

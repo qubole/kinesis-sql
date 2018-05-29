@@ -24,10 +24,7 @@ import org.apache.spark.sql.streaming.OutputMode
 
 private[kinesis] class KinesisSink(sqlContext: SQLContext,
                                    sinkOptions: Map[String, String],
-                                   streamName: String,
-                                   outputMode: OutputMode,
-                                   endPointURL: String,
-                                   kinesisCredsProvider: BasicCredentials)
+                                   outputMode: OutputMode)
   extends Sink with Logging {
 
   @volatile private var latestBatchId = -1L

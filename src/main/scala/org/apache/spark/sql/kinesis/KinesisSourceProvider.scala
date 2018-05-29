@@ -108,25 +108,8 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
                            partitionColumns: Seq[String],
                            outputMode: OutputMode): Sink = {
     val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
-
-    val specifiedKinesisParams =
-      parameters
-        .keySet
-        .filter(_.toLowerCase(Locale.ROOT).startsWith("kinesis."))
-        .map { k => k.drop(8).toString -> parameters(k) }
-        .toMap
-
-    val streamName = caseInsensitiveParams(SINK_STREAM_NAME_KEY)
-    val endpointUrl = caseInsensitiveParams.getOrElse(SINK_ENDPOINT_URL,
-      DEFAULT_KINESIS_ENDPOINT_URL)
-
-    val region = caseInsensitiveParams.getOrElse(SINK_REGION_NAME_KEY, DEFAULT_KINESIS_REGION_NAME)
-    val awsAccessKeyId = caseInsensitiveParams.getOrElse(SINK_AWS_ACCESS_KEY_ID, "")
-    val awsSecretKey = caseInsensitiveParams.getOrElse(SINK_AWS_SECRET_KEY, "")
-    val kinesisCredsProvider: BasicCredentials = BasicCredentials(awsAccessKeyId, awsSecretKey)
-
-    new KinesisSink(sqlContext, caseInsensitiveParams, streamName, outputMode,
-      endpointUrl, kinesisCredsProvider)
+    validateStreamOptions(caseInsensitiveParams)
+    new KinesisSink(sqlContext, caseInsensitiveParams, outputMode)
   }
 
 }
@@ -140,11 +123,12 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val AWS_SECRET_KEY = "awssecretkey"
   private[kinesis] val STARTING_POSITION_KEY = "startingposition"
 
-  private[kinesis] val SINK_STREAM_NAME_KEY = "sinkstreamname"
-  private[kinesis] val SINK_ENDPOINT_URL = "sinkendpointurl"
-  private[kinesis] val SINK_REGION_NAME_KEY = "sinkregionname"
-  private[kinesis] val SINK_AWS_ACCESS_KEY_ID = "sinkawsaccesskeyid"
-  private[kinesis] val SINK_AWS_SECRET_KEY = "sinkawssecretkey"
+  // Sink Options
+  private[kinesis] val SINK_STREAM_NAME_KEY = "sink.streamname"
+  private[kinesis] val SINK_ENDPOINT_URL = "sink.endpointurl"
+  private[kinesis] val SINK_REGION_NAME_KEY = "sink.regionname"
+  private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME_NAME = "sink.recordMaxBufferedTime"
+  private[kinesis] val SINK_MAX_CONNECTIONS_NAME = "sink.maxConnections"
 
 
   private[kinesis] def getKinesisPosition(
@@ -164,6 +148,10 @@ private[kinesis] object KinesisSourceProvider extends Logging {
     "https://kinesis.us-east-1.amazonaws.com"
 
   private[kinesis] val DEFAULT_KINESIS_REGION_NAME: String = "us-east-1"
+
+  private[kinesis] val DEFAULT_SINK_RECORD_MAX_BUFFERED_TIME: String = "1000"
+
+  private[kinesis] val DEFAULT_SINK_MAX_CONNECTIONS: String = "1"
 
 }
 

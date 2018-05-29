@@ -23,7 +23,7 @@ import com.google.common.util.concurrent.{FutureCallback, Futures}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, Literal, UnsafeProjection}
+import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, UnsafeProjection}
 import org.apache.spark.sql.types.{BinaryType, StringType}
 
 private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, String],
@@ -78,14 +78,15 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
   private def createProjection: UnsafeProjection = {
 
     val partitionKeyExpression = inputSchema
-      .find(_.name == KinesisWriter.PARTITION_KEY_ATTRIBUTE_NAME)
-      .getOrElse(Literal(null, StringType))
+      .find(_.name == KinesisWriter.PARTITION_KEY_ATTRIBUTE_NAME).getOrElse(
+      throw new IllegalStateException("Required attribute " +
+        s"'${KinesisWriter.PARTITION_KEY_ATTRIBUTE_NAME}' not found"))
 
     partitionKeyExpression.dataType match {
       case StringType | BinaryType => // ok
       case t =>
         throw new IllegalStateException(s"${KinesisWriter.PARTITION_KEY_ATTRIBUTE_NAME} " +
-          s"attribute unsupported type $t")
+          "attribute type must be a String or BinaryType")
     }
 
     val dataExpression = inputSchema.find(_.name == KinesisWriter.DATA_ATTRIBUTE_NAME).getOrElse(
@@ -97,7 +98,7 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
       case StringType | BinaryType => // ok
       case t =>
         throw new IllegalStateException(s"${KinesisWriter.DATA_ATTRIBUTE_NAME} " +
-          s"attribute unsupported type $t")
+          "attribute type must be a String or BinaryType")
     }
 
     UnsafeProjection.create(

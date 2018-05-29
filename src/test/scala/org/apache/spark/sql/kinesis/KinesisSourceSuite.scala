@@ -572,7 +572,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
 
 }
 
-class WithoutAggregationKinesisSourceSuite extends KinesisSourceSuite(aggregateTestData = false)
+ class WithoutAggregationKinesisSourceSuite extends KinesisSourceSuite(aggregateTestData = false)
 
-class WithAggregationKinesisSourceSuite extends KinesisSourceSuite(aggregateTestData = true)
+ class WithAggregationKinesisSourceSuite extends KinesisSourceSuite(aggregateTestData = true)
 
