@@ -102,13 +102,26 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     }
   }
 
+  private def validateSinkOptions(caseInsensitiveParams: Map[String, String]): Unit = {
+    if (!caseInsensitiveParams.contains(SINK_STREAM_NAME_KEY) ||
+      caseInsensitiveParams(SINK_STREAM_NAME_KEY).isEmpty) {
+      throw new IllegalArgumentException(
+        "Stream name is a required field")
+    }
+    if(!caseInsensitiveParams.contains(SINK_ENDPOINT_URL) ||
+      caseInsensitiveParams(SINK_ENDPOINT_URL).isEmpty) {
+      throw new IllegalArgumentException(
+        "Sink endpoint url is a required field")
+    }
+  }
+
   override def createSink(
                            sqlContext: SQLContext,
                            parameters: Map[String, String],
                            partitionColumns: Seq[String],
                            outputMode: OutputMode): Sink = {
     val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
-    validateStreamOptions(caseInsensitiveParams)
+    validateSinkOptions(caseInsensitiveParams)
     new KinesisSink(sqlContext, caseInsensitiveParams, outputMode)
   }
 

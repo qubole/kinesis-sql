@@ -19,9 +19,12 @@ package org.apache.spark.sql.kinesis
 import java.util.Locale
 import java.util.concurrent.{ExecutionException, TimeUnit}
 
+import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
+import com.amazonaws.regions.RegionUtils
+import com.amazonaws.services.kinesis.AmazonKinesis
 import com.amazonaws.services.kinesis.producer.{KinesisProducer, KinesisProducerConfiguration}
 import com.google.common.cache._
 import com.google.common.util.concurrent.{ExecutionError, UncheckedExecutionException}
@@ -82,9 +85,11 @@ private[kinesis] object CachedKinesisProducer extends Logging {
     val awsSecretKey = producerConfiguration.getOrElse(
       KinesisSourceProvider.AWS_SECRET_KEY, "").toString
 
-    val region = producerConfiguration.getOrElse(
-      KinesisSourceProvider.REGION_NAME_KEY, KinesisSourceProvider.DEFAULT_KINESIS_REGION_NAME)
+    val endpoint = producerConfiguration.getOrElse(
+      KinesisSourceProvider.SINK_ENDPOINT_URL, KinesisSourceProvider.DEFAULT_KINESIS_ENDPOINT_URL)
       .toString
+
+    val region = getRegionNameByEndpoint(endpoint)
 
     val kinesisProducer = new Producer(new KinesisProducerConfiguration()
       .setRecordMaxBufferedTime(recordMaxBufferedTime)
@@ -133,6 +138,16 @@ private[kinesis] object CachedKinesisProducer extends Logging {
   private def clear(): Unit = {
     logInfo("Cleaning up guava cache.")
     guavaCache.invalidateAll()
+  }
+
+  def getRegionNameByEndpoint(endpoint: String): String = {
+    val uri = new java.net.URI(endpoint)
+    RegionUtils.getRegionsForService(AmazonKinesis.ENDPOINT_PREFIX)
+      .asScala
+      .find(_.getAvailableEndpoints.asScala.toSeq.contains(uri.getHost))
+      .map(_.getName)
+      .getOrElse(
+        throw new IllegalArgumentException(s"Could not resolve region for endpoint: $endpoint"))
   }
 
 }
