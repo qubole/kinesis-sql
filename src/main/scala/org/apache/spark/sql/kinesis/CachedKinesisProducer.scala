@@ -29,15 +29,13 @@ import com.amazonaws.services.kinesis.producer.{KinesisProducer, KinesisProducer
 import com.google.common.cache._
 import com.google.common.util.concurrent.{ExecutionError, UncheckedExecutionException}
 
-import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 
 private[kinesis] object CachedKinesisProducer extends Logging {
 
   private type Producer = KinesisProducer
 
-  private lazy val cacheExpireTimeout: Long =
-    SparkEnv.get.conf.getTimeAsMs("spark.kinesis.producer.cache.timeout", "10m")
+  private var cacheExpireTimeout: Long = _
 
   private val cacheLoader = new CacheLoader[Seq[(String, Object)], Producer] {
     override def load(config: Seq[(String, Object)]): Producer = {
@@ -64,18 +62,24 @@ private[kinesis] object CachedKinesisProducer extends Logging {
       .build[Seq[(String, Object)], Producer](cacheLoader)
 
   private def createKinesisProducer(producerConfiguration: Map[String, String]): Producer = {
+
     val kinesisParams = producerConfiguration.keySet
       .filter(_.toLowerCase(Locale.ROOT).startsWith("kinesis."))
       .map { k => k.drop(8).toString -> producerConfiguration(k) }
       .toMap
 
+    cacheExpireTimeout = kinesisParams.getOrElse(
+      KinesisSourceProvider.SINK_PRODUCER_CACHE_TIMEOUT,
+      KinesisSourceProvider.DEFAULT_SINK_RECORD_MAX_BUFFERED_TIME)
+      .toLong
+
     val recordMaxBufferedTime = kinesisParams.getOrElse(
-      KinesisSourceProvider.SINK_RECORD_MAX_BUFFERED_TIME_NAME,
+      KinesisSourceProvider.SINK_RECORD_MAX_BUFFERED_TIME,
       KinesisSourceProvider.DEFAULT_SINK_RECORD_MAX_BUFFERED_TIME)
       .toLong
 
     val maxConnections = kinesisParams.getOrElse(
-      KinesisSourceProvider.SINK_MAX_CONNECTIONS_NAME,
+      KinesisSourceProvider.SINK_MAX_CONNECTIONS,
       KinesisSourceProvider.DEFAULT_SINK_MAX_CONNECTIONS)
       .toInt
 
@@ -89,11 +93,17 @@ private[kinesis] object CachedKinesisProducer extends Logging {
       KinesisSourceProvider.SINK_ENDPOINT_URL, KinesisSourceProvider.DEFAULT_KINESIS_ENDPOINT_URL)
       .toString
 
+    val aggregation = producerConfiguration.getOrElse(
+      KinesisSourceProvider.SINK_AGGREGATION_ENABLED,
+      KinesisSourceProvider.DEFAULT_SINK_AGGREGATION)
+      .toBoolean
+
     val region = getRegionNameByEndpoint(endpoint)
 
     val kinesisProducer = new Producer(new KinesisProducerConfiguration()
       .setRecordMaxBufferedTime(recordMaxBufferedTime)
       .setMaxConnections(maxConnections)
+      .setAggregationEnabled(aggregation)
       .setCredentialsProvider(
         new AWSStaticCredentialsProvider(new BasicAWSCredentials(awsAccessKeyId, awsSecretKey))
       )
@@ -129,6 +139,7 @@ private[kinesis] object CachedKinesisProducer extends Logging {
   private def close(paramsSeq: Seq[(String, Object)], producer: Producer): Unit = {
     try {
       logInfo(s"Closing the KinesisProducer with params: ${paramsSeq.mkString("\n")}.")
+      producer.flushSync()
       producer.destroy()
     } catch {
       case NonFatal(e) => logWarning("Error while closing kinesis producer.", e)

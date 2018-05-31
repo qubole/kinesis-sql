@@ -125,6 +125,8 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 | awsSecretKey |      -  |    AWS Credentials for  Kinesis describe, read record |
 | kinesis.executor.recordMaxBufferedTime | 1000 (millis) | Specify the maximum buffered time of a record |
 | kinesis.executor.maxConnections | 1 | Specify the maximum connections to Kinesis | 
+| kinesis.executor.aggregationEnabled | false | Specify if records should be aggregated before sending them to Kinesis | 
+| kinesis.producer.cache.timeout | 10m | Specify the time a Kinesis Producer will be cached until a new one is created | 
 
 ## Roadmap
 *  Above library has been developed and tested against Spark 2.2.x.  We need to migrate to DataSource V2 APIs released in Spark 2.3.0

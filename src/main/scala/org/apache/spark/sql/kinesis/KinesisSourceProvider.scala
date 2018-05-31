@@ -26,11 +26,11 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 
- /*
-  * The provider class for the [[KinesisSource]]. This provider is designed such that it throws
-  * IllegalArgumentException when the Kinesis Dataset is created, so that it can catch
-  * missing options even before the query is started.
-  */
+/*
+ * The provider class for the [[KinesisSource]]. This provider is designed such that it throws
+ * IllegalArgumentException when the Kinesis Dataset is created, so that it can catch
+ * missing options even before the query is started.
+ */
 
 private[kinesis] class KinesisSourceProvider extends DataSourceRegister
   with StreamSourceProvider
@@ -108,10 +108,17 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
       throw new IllegalArgumentException(
         "Stream name is a required field")
     }
-    if(!caseInsensitiveParams.contains(SINK_ENDPOINT_URL) ||
+    if (!caseInsensitiveParams.contains(SINK_ENDPOINT_URL) ||
       caseInsensitiveParams(SINK_ENDPOINT_URL).isEmpty) {
       throw new IllegalArgumentException(
         "Sink endpoint url is a required field")
+    }
+    if (caseInsensitiveParams.contains(SINK_AGGREGATION_ENABLED) && (
+        caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "true" ||
+        caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "false"
+      )) {
+      throw new IllegalArgumentException(
+        "Sink aggregation value must be either true or false")
     }
   }
 
@@ -139,8 +146,10 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   // Sink Options
   private[kinesis] val SINK_STREAM_NAME_KEY = "streamname"
   private[kinesis] val SINK_ENDPOINT_URL = "endpointurl"
-  private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME_NAME = "kinesis.executor.recordmaxbufferedtime"
-  private[kinesis] val SINK_MAX_CONNECTIONS_NAME = "kinesis.executor.maxconnections"
+  private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME = "kinesis.executor.recordmaxbufferedtime"
+  private[kinesis] val SINK_MAX_CONNECTIONS = "kinesis.executor.maxconnections"
+  private[kinesis] val SINK_AGGREGATION_ENABLED = "kinesis.executor.aggregationenabled"
+  private[kinesis] val SINK_PRODUCER_CACHE_TIMEOUT = "kinesis.producer.cache.timeout"
 
 
   private[kinesis] def getKinesisPosition(
@@ -164,6 +173,10 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val DEFAULT_SINK_RECORD_MAX_BUFFERED_TIME: String = "1000"
 
   private[kinesis] val DEFAULT_SINK_MAX_CONNECTIONS: String = "1"
+
+  private[kinesis] val DEFAULT_SINK_AGGREGATION: String = "false"
+
+  private[kinesis] val DEFAULT_SINK_PRODUCER_CACHE_TIMEOUT: String = "10m"
 
 }
 
