@@ -95,8 +95,8 @@ class KinesisSinkSuite extends KinesisSinkTest {
     var ex: Exception = null
 
     val options = Map[String, String](
-      "sink.StreamName" -> testUtils.streamName,
-      "sink.EndpointUrl" -> testUtils.endpointUrl,
+      "streamName" -> testUtils.streamName,
+      "endpointUrl" -> testUtils.endpointUrl,
       "AWSAccessKeyId" -> KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId,
       "AWSSecretKey" -> KinesisTestUtils.getAWSCredentials().getAWSSecretKey
     )
@@ -138,8 +138,8 @@ class KinesisSinkSuite extends KinesisSinkTest {
 
   testIfEnabled("Test write data with valid schema but wrong types") {
     val options = Map[String, String](
-      "sink.StreamName" -> testUtils.streamName,
-      "sink.EndpointUrl" -> testUtils.endpointUrl,
+      "streamName" -> testUtils.streamName,
+      "endpointUrl" -> testUtils.endpointUrl,
       "AWSAccessKeyId" -> KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId,
       "AWSSecretKey" -> KinesisTestUtils.getAWSCredentials().getAWSSecretKey
     )
@@ -200,8 +200,8 @@ class KinesisSinkSuite extends KinesisSinkTest {
 
     val input = MemoryStream[String]
     val writerOptions = Map[String, String](
-      "sink.StreamName" -> testUtils.streamName,
-      "sink.EndpointUrl" -> testUtils.endpointUrl,
+      "streamName" -> testUtils.streamName,
+      "endpointUrl" -> testUtils.endpointUrl,
       "AWSAccessKeyId" -> KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId,
       "AWSSecretKey" -> KinesisTestUtils.getAWSCredentials().getAWSSecretKey
     )

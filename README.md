@@ -92,8 +92,8 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
   	    .writeStream
   	    .format("kinesis")
         .outputMode("update") 
-        .option("sink.streamName", "spark-sink-example")
-        .option("sink.endpointUrl", "https://kinesis.us-east-1.amazonaws.com")
+        .option("streamName", "spark-sink-example")
+        .option("endpointUrl", "https://kinesis.us-east-1.amazonaws.com")
         .option("awsAccessKeyId", [ACCESS_KEY])
         .option("awsSecretKey", [SECRET_KEY])
         .option("awsSecretKey", [SECRET_KEY])
@@ -119,12 +119,12 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 ## Kinesis Sink Configuration
  Option-Name        | Default-Value           | Description  |
 | ------------- |:-------------:| -----:|
-| sink.streamName   | - | Name of the stream in Kinesis to write to|
-| sink.endpointUrl  | https://kinesis.us-east-1.amazonaws.com |  The aws endpoint of the kinesis Stream |
+| streamName   | - | Name of the stream in Kinesis to write to|
+| endpointUrl  | https://kinesis.us-east-1.amazonaws.com |  The aws endpoint of the kinesis Stream |
 | awsAccessKeyId |    -     |    AWS Credentials for  Kinesis describe, read record operations    
 | awsSecretKey |      -  |    AWS Credentials for  Kinesis describe, read record |
-| kinesis.recordMaxBufferedTime | 1000 (millis) | Specify the maximum buffered time of a record |
-| kinesis.maxConnections | 1 | Specify the maximum connections to Kinesis | 
+| kinesis.executor.recordMaxBufferedTime | 1000 (millis) | Specify the maximum buffered time of a record |
+| kinesis.executor.maxConnections | 1 | Specify the maximum connections to Kinesis | 
 
 ## Roadmap
 *  Above library has been developed and tested against Spark 2.2.x.  We need to migrate to DataSource V2 APIs released in Spark 2.3.0

@@ -137,10 +137,10 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val STARTING_POSITION_KEY = "startingposition"
 
   // Sink Options
-  private[kinesis] val SINK_STREAM_NAME_KEY = "sink.streamname"
-  private[kinesis] val SINK_ENDPOINT_URL = "sink.endpointurl"
-  private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME_NAME = "sink.recordMaxBufferedTime"
-  private[kinesis] val SINK_MAX_CONNECTIONS_NAME = "sink.maxConnections"
+  private[kinesis] val SINK_STREAM_NAME_KEY = "streamname"
+  private[kinesis] val SINK_ENDPOINT_URL = "endpointurl"
+  private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME_NAME = "kinesis.executor.recordmaxbufferedtime"
+  private[kinesis] val SINK_MAX_CONNECTIONS_NAME = "kinesis.executor.maxconnections"
 
 
   private[kinesis] def getKinesisPosition(
