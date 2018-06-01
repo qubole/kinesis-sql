@@ -96,7 +96,6 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
         .option("endpointUrl", "https://kinesis.us-east-1.amazonaws.com")
         .option("awsAccessKeyId", [ACCESS_KEY])
         .option("awsSecretKey", [SECRET_KEY])
-        .option("awsSecretKey", [SECRET_KEY])
   	    .start()
   	    .awaitTermination()
 
