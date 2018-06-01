@@ -130,8 +130,6 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 
 ## Roadmap
 *  Above library has been developed and tested against Spark 2.2.x.  We need to migrate to DataSource V2 APIs released in Spark 2.3.0
-*  Support for Kinesis Sink 
-
 
 ## Acknowledgement
 
