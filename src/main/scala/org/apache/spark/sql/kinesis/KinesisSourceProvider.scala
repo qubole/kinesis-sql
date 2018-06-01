@@ -174,7 +174,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
 
   private[kinesis] val DEFAULT_SINK_MAX_CONNECTIONS: String = "1"
 
-  private[kinesis] val DEFAULT_SINK_AGGREGATION: String = "false"
+  private[kinesis] val DEFAULT_SINK_AGGREGATION: String = "true"
 
   private[kinesis] val DEFAULT_SINK_PRODUCER_CACHE_TIMEOUT: String = "10m"
 
