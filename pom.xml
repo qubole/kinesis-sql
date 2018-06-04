@@ -75,7 +75,6 @@
       <groupId>com.amazonaws</groupId>
       <artifactId>amazon-kinesis-producer</artifactId>
       <version>${aws.kinesis.producer.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -143,6 +142,7 @@
                 <artifactSet>
                 <includes>
                   <include>com.amazonaws:amazon-kinesis-client:*</include>
+                  <include>com.amazonaws:amazon-kinesis-producer:*</include>
                   <include>com.amazonaws:aws-java-sdk-kinesis:*</include>
                   <include>com.amazonaws:aws-java-sdk-dynamodb:*</include>
                   <include>com.amazonaws:aws-java-sdk-core:*</include>

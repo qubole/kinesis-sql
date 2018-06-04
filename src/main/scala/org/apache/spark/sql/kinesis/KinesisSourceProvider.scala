@@ -21,18 +21,20 @@ import java.util.Locale
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.execution.streaming.Source
+import org.apache.spark.sql.execution.streaming.{Sink, Source}
 import org.apache.spark.sql.sources._
+import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 
- /*
-  * The provider class for the [[KinesisSource]]. This provider is designed such that it throws
-  * IllegalArgumentException when the Kinesis Dataset is created, so that it can catch
-  * missing options even before the query is started.
-  */
+/*
+ * The provider class for the [[KinesisSource]]. This provider is designed such that it throws
+ * IllegalArgumentException when the Kinesis Dataset is created, so that it can catch
+ * missing options even before the query is started.
+ */
 
 private[kinesis] class KinesisSourceProvider extends DataSourceRegister
   with StreamSourceProvider
+  with StreamSinkProvider
   with Logging {
 
   import KinesisSourceProvider._
@@ -100,6 +102,36 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     }
   }
 
+  private def validateSinkOptions(caseInsensitiveParams: Map[String, String]): Unit = {
+    if (!caseInsensitiveParams.contains(SINK_STREAM_NAME_KEY) ||
+      caseInsensitiveParams(SINK_STREAM_NAME_KEY).isEmpty) {
+      throw new IllegalArgumentException(
+        "Stream name is a required field")
+    }
+    if (!caseInsensitiveParams.contains(SINK_ENDPOINT_URL) ||
+      caseInsensitiveParams(SINK_ENDPOINT_URL).isEmpty) {
+      throw new IllegalArgumentException(
+        "Sink endpoint url is a required field")
+    }
+    if (caseInsensitiveParams.contains(SINK_AGGREGATION_ENABLED) && (
+        caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "true" ||
+        caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "false"
+      )) {
+      throw new IllegalArgumentException(
+        "Sink aggregation value must be either true or false")
+    }
+  }
+
+  override def createSink(
+                           sqlContext: SQLContext,
+                           parameters: Map[String, String],
+                           partitionColumns: Seq[String],
+                           outputMode: OutputMode): Sink = {
+    val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
+    validateSinkOptions(caseInsensitiveParams)
+    new KinesisSink(sqlContext, caseInsensitiveParams, outputMode)
+  }
+
 }
 
 private[kinesis] object KinesisSourceProvider extends Logging {
@@ -110,6 +142,15 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val AWS_ACCESS_KEY_ID = "awsaccesskeyid"
   private[kinesis] val AWS_SECRET_KEY = "awssecretkey"
   private[kinesis] val STARTING_POSITION_KEY = "startingposition"
+
+  // Sink Options
+  private[kinesis] val SINK_STREAM_NAME_KEY = "streamname"
+  private[kinesis] val SINK_ENDPOINT_URL = "endpointurl"
+  private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME = "kinesis.executor.recordmaxbufferedtime"
+  private[kinesis] val SINK_MAX_CONNECTIONS = "kinesis.executor.maxconnections"
+  private[kinesis] val SINK_AGGREGATION_ENABLED = "kinesis.executor.aggregationenabled"
+  private[kinesis] val SINK_PRODUCER_CACHE_TIMEOUT = "kinesis.producer.cache.timeout"
+
 
   private[kinesis] def getKinesisPosition(
       params: Map[String, String]): KinesisPosition = {
@@ -128,6 +169,14 @@ private[kinesis] object KinesisSourceProvider extends Logging {
     "https://kinesis.us-east-1.amazonaws.com"
 
   private[kinesis] val DEFAULT_KINESIS_REGION_NAME: String = "us-east-1"
+
+  private[kinesis] val DEFAULT_SINK_RECORD_MAX_BUFFERED_TIME: String = "1000"
+
+  private[kinesis] val DEFAULT_SINK_MAX_CONNECTIONS: String = "1"
+
+  private[kinesis] val DEFAULT_SINK_AGGREGATION: String = "true"
+
+  private[kinesis] val DEFAULT_SINK_PRODUCER_CACHE_TIMEOUT: String = "10m"
 
 }
 

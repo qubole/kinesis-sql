@@ -206,6 +206,7 @@ private[kinesis] object KinesisTestUtils {
   val envVarNameForEnablingTests = "ENABLE_KINESIS_SQL_TESTS"
   val endVarNameForEndpoint = "KINESIS_TEST_ENDPOINT_URL"
   val defaultEndpointUrl = "https://kinesis.us-east-1.amazonaws.com"
+  val regionName: String = getRegionNameByEndpoint(endpointUrl)
 
   def getRegionNameByEndpoint(endpoint: String): String = {
     val uri = new java.net.URI(endpoint)
