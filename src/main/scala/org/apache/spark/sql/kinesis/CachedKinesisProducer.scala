@@ -37,7 +37,7 @@ private[kinesis] object CachedKinesisProducer extends Logging {
   private type Producer = KinesisProducer
 
   private lazy val cacheExpireTimeout: Long =
-    SparkEnv.get.conf.getTimeAsMs("spark.kafka.producer.cache.timeout", "10m")
+    SparkEnv.get.conf.getTimeAsMs("spark.kinesis.producer.cache.timeout", "10m")
 
   private val cacheLoader = new CacheLoader[Seq[(String, Object)], Producer] {
     override def load(config: Seq[(String, Object)]): Producer = {
