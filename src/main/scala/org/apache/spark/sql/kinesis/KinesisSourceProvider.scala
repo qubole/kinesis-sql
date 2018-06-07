@@ -114,7 +114,7 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
         "Sink endpoint url is a required field")
     }
     if (caseInsensitiveParams.contains(SINK_AGGREGATION_ENABLED) && (
-        caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "true" ||
+        caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "true" &&
         caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "false"
       )) {
       throw new IllegalArgumentException(
@@ -149,7 +149,6 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME = "kinesis.executor.recordmaxbufferedtime"
   private[kinesis] val SINK_MAX_CONNECTIONS = "kinesis.executor.maxconnections"
   private[kinesis] val SINK_AGGREGATION_ENABLED = "kinesis.executor.aggregationenabled"
-  private[kinesis] val SINK_PRODUCER_CACHE_TIMEOUT = "kinesis.producer.cache.timeout"
 
 
   private[kinesis] def getKinesisPosition(
@@ -175,9 +174,6 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val DEFAULT_SINK_MAX_CONNECTIONS: String = "1"
 
   private[kinesis] val DEFAULT_SINK_AGGREGATION: String = "true"
-
-  private[kinesis] val DEFAULT_SINK_PRODUCER_CACHE_TIMEOUT: String = "10m"
-
 }
 
 
