@@ -141,7 +141,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
   testIfEnabled("Starting position is latest by default") {
     testUtils.pushData(Array("0"), aggregateTestData)
     // sleep for 1 s to avoid any concurrency issues
-    Thread.sleep(1000.toLong)
+    Thread.sleep(2000.toLong)
     val clock = new StreamManualClock
 
     val waitUntilBatchProcessed = AssertOnQuery { q =>
@@ -335,6 +335,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
           // We should have two closed shards and one open shard
           assert(mergedCloseShards.size == 2)
           assert(mergedOpenShards.size == 1)
+          Thread.sleep(2000.toLong)
           true
         },
         AssertOnQuery { query =>

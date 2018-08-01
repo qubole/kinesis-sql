@@ -38,7 +38,7 @@ import org.apache.spark.util.{ThreadUtils, UninterruptibleThread}
 private[kinesis] case class KinesisReader(
     readerOptions: Map[String, String],
     streamName: String,
-    kinesisCredsProvider: BasicCredentials,
+    kinesisCredsProvider: SparkAWSCredentials,
     endpointUrl: String
 ) extends Serializable with Logging {
 
@@ -155,10 +155,6 @@ private[kinesis] case class KinesisReader(
         s"Describe Streams") {
         try {
           getAmazonClient.describeStream(describeStreamRequest)
-        } catch {
-          case e: Throwable =>
-            logWarning(s"Error while Describe stream ${e.getMessage}")
-            return Seq.empty[Shard]
         }
       }
     }
