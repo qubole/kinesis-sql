@@ -43,8 +43,8 @@ private[kinesis] final case object DefaultCredentials extends SparkAWSCredential
  * Returns InstanceProfileCredentialsProvider.
  */
 
-private[kinesis] final case class InstanceProfileCredentials()
-  extends SparkAWSCredentials with Logging {
+private[kinesis] final case object InstanceProfileCredentials()
+  extends SparkAWSCredentials {
   def provider: AWSCredentialsProvider = new InstanceProfileCredentialsProvider(true)
 }
 
