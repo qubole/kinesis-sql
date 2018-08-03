@@ -39,6 +39,16 @@ private[kinesis] final case object DefaultCredentials extends SparkAWSCredential
   def provider: AWSCredentialsProvider = new DefaultAWSCredentialsProviderChain
 }
 
+/*
+ * Returns InstanceProfileCredentialsProvider.
+ */
+
+private[kinesis] final case object InstanceProfileCredentials
+  extends SparkAWSCredentials {
+  def provider: AWSCredentialsProvider = new InstanceProfileCredentialsProvider(true)
+}
+
+
 /**
  * Returns AWSStaticCredentialsProvider constructed using basic AWS keypair. Falls back to using
  * DefaultCredentialsProviderChain if unable to construct a AWSCredentialsProviderChain
