@@ -37,7 +37,7 @@ class KinesisContinuousReader(
      streamName: String,
      initialPosition: KinesisPosition,
      endPointURL: String,
-     kinesisCredsProvider: BasicCredentials)
+     kinesisCredsProvider: SparkAWSCredentials)
   extends ContinuousReader with SupportsScanUnsafeRow with Logging {
 
   private var currentShardOffsets: ShardOffsets = _
@@ -199,7 +199,7 @@ case class KinesisContinuousDataReaderFactory(
                                                startOffset: ShardInfo,
                                                sourceOptions: Map[String, String],
                                                streamName: String,
-                                               kinesisCredsProvider: BasicCredentials,
+                                               kinesisCredsProvider: SparkAWSCredentials,
                                                endpointUrl: String)
   extends DataReaderFactory[UnsafeRow] {
 
@@ -214,7 +214,7 @@ class KinesisContinuousDataReader(
                                    startOffset: ShardInfo,
                                    sourceOptions: Map[String, String],
                                    streamName: String,
-                                   kinesisCredsProvider: BasicCredentials,
+                                   kinesisCredsProvider: SparkAWSCredentials,
                                    endpointUrl: String)
 
   extends ContinuousDataReader[UnsafeRow] with Logging {

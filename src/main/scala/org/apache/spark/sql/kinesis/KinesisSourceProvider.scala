@@ -164,6 +164,8 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
 
     val awsAccessKeyId = caseInsensitiveParams.get(AWS_ACCESS_KEY_ID).getOrElse("")
     val awsSecretKey = caseInsensitiveParams.get(AWS_SECRET_KEY).getOrElse("")
+    val awsStsRoleArn = caseInsensitiveParams.get(AWS_STS_ROLE_ARN).getOrElse("")
+    val awsStsSessionName = caseInsensitiveParams.get(AWS_STS_SESSION_NAME).getOrElse("")
 
     val regionName = caseInsensitiveParams.get(REGION_NAME_KEY)
       .getOrElse(DEFAULT_KINESIS_REGION_NAME)
@@ -171,14 +173,21 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
       .getOrElse(DEFAULT_KINESIS_ENDPOINT_URL)
 
     val initialPosition: KinesisPosition = getKinesisPosition(caseInsensitiveParams)
-    val kinesisCredsProvider: BasicCredentials = BasicCredentials(awsAccessKeyId, awsSecretKey)
+
+    val kinesisCredsProvider = if (awsAccessKeyId.length > 0) {
+      BasicCredentials(awsAccessKeyId, awsSecretKey)
+    } else if (awsStsRoleArn.length > 0) {
+      STSCredentials(awsStsRoleArn, awsStsSessionName)
+    } else {
+      InstanceProfileCredentials
+    }
 
     new KinesisContinuousReader(
       specifiedKinesisParams,
       streamName,
       initialPosition,
       endPointURL,
-      kinesisCredsProvider: BasicCredentials)
+      kinesisCredsProvider)
 
   }
 
