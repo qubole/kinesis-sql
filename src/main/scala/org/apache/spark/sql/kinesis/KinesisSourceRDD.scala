@@ -66,7 +66,7 @@ private[kinesis] class KinesisSourceRDD(
     streamName: String,
     batchId: Long,
     shardInfos: Seq[ShardInfo],
-    kinesisCredsProvider: BasicCredentials,
+    kinesisCredsProvider: SparkAWSCredentials,
     endpointUrl: String,
     conf: SerializableConfiguration,
     metadataPath: String
