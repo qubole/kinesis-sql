@@ -98,7 +98,6 @@ object SparkAWSCredentials {
   @InterfaceStability.Evolving
   class Builder {
     private var basicCreds: Option[BasicCredentials] = None
-    // private var instanceCreds: Option[InstanceProfileCredentials] = None
     private var stsCreds: Option[STSCredentials] = None
 
     // scalastyle:off
@@ -121,17 +120,6 @@ object SparkAWSCredentials {
         awsSecretKey = secretKey))
       this
     }
-
-    /*  Use a instance profile credentials.
-     *
-     *
-     * @return Reference to this [[SparkAWSCredentials.Builder]]
-     */
-    // scalastyle:on
-    // def instanceProfileCredentials(): Builder = {
-    //  instanceCreds = Option(InstanceProfileCredentials)
-    //  this
-    //   }
 
     /**
      * Use STS to assume an IAM role for temporary session-based authentication. Will use configured
