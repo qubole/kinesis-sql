@@ -107,7 +107,7 @@ private[kinesis] object CachedKinesisProducer extends Logging {
     } else if (awsStsRoleArn.length > 0) {
       STSCredentials(awsStsRoleArn, awsStsSessionName)
     } else {
-      InstanceProfileCredentials()
+      InstanceProfileCredentials
     }
 
     val kinesisProducer = new Producer(new KinesisProducerConfiguration()

@@ -43,8 +43,8 @@ private[kinesis] final case object DefaultCredentials extends SparkAWSCredential
  * Returns InstanceProfileCredentialsProvider.
  */
 
-private[kinesis] final case class InstanceProfileCredentials()
-  extends SparkAWSCredentials with Logging {
+private[kinesis] final case object InstanceProfileCredentials
+  extends SparkAWSCredentials {
   def provider: AWSCredentialsProvider = new InstanceProfileCredentialsProvider(true)
 }
 
@@ -98,7 +98,6 @@ object SparkAWSCredentials {
   @InterfaceStability.Evolving
   class Builder {
     private var basicCreds: Option[BasicCredentials] = None
-    private var instanceCreds: Option[InstanceProfileCredentials] = None
     private var stsCreds: Option[STSCredentials] = None
 
     // scalastyle:off
@@ -121,17 +120,6 @@ object SparkAWSCredentials {
         awsSecretKey = secretKey))
       this
     }
-
-    /*  Use a instance profile credentials.
-     *
-     *
-     * @return Reference to this [[SparkAWSCredentials.Builder]]
-     */
-    // scalastyle:on
-    def instanceProfileCredentials(): Builder = {
-      instanceCreds = Option(InstanceProfileCredentials())
-      this
-      }
 
     /**
      * Use STS to assume an IAM role for temporary session-based authentication. Will use configured
