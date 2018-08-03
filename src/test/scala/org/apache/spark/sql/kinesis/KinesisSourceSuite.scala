@@ -273,11 +273,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
     // create a new stream for this test
     val localTestUtils = new KPLBasedKinesisTestUtils(2)
     localTestUtils.createStream()
-    val initialTestData = 1 to 5
     try {
-      localTestUtils.pushData(initialTestData.map(_.toString).toArray, aggregateTestData)
-      // sleep for 1 s to avoid any concurrency issues
-      Thread.sleep(1000.toLong)
       val clock = new StreamManualClock
 
       val waitUntilBatchProcessed = AssertOnQuery { q =>
@@ -341,6 +337,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
         AssertOnQuery { query =>
           logInfo("Push Data ")
           localTestUtils.pushData(testData2.map(_.toString).toArray, aggregateTestData)
+          Thread.sleep(2000.toLong)
           true
         },
         StartStream(ProcessingTime(100), clock),
@@ -460,6 +457,11 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
     )
   }
 
+}
+
+abstract class KinesisStressSourceSuite(aggregateTestData: Boolean) extends KinesisSourceTest {
+  import testImplicits._
+
   testIfEnabled("split and merge shards in a stream") {
     val localTestUtils = new KPLBasedKinesisTestUtils(1)
     localTestUtils.createStream()
@@ -573,7 +575,12 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
 
 }
 
+
 class WithoutAggregationKinesisSourceSuite extends KinesisSourceSuite(aggregateTestData = false)
 
-class WithAggregationKinesisSourceSuite extends KinesisSourceSuite(aggregateTestData = true)
+class WithoutAggregationKinesisSourceStressTestSuite
+  extends KinesisStressSourceSuite(aggregateTestData = false)
+
+class WithAggregationKinesisSourceStressTestSuite
+  extends KinesisStressSourceSuite(aggregateTestData = true)
 

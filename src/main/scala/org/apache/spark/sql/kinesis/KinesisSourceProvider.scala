@@ -96,7 +96,7 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     } else if (awsStsRoleArn.length > 0) {
       STSCredentials(awsStsRoleArn, awsStsSessionName)
     } else {
-      InstanceProfileCredentials()
+      InstanceProfileCredentials
     }
 
     new KinesisSource(

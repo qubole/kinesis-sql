@@ -42,7 +42,7 @@ class KinesisReaderSuite extends SharedSQLContext with PrivateMethodTester {
         new KinesisReader(
           Map.empty[String, String],
           "Test",
-          InstanceProfileCredentials(),
+          InstanceProfileCredentials,
           KinesisTestUtils.endpointUrl
         )
       kinesisReader.getShards()

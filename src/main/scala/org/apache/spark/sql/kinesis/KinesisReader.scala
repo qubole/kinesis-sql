@@ -21,6 +21,7 @@ import java.math.BigInteger
 import java.util
 import java.util.concurrent.{Executors, ThreadFactory}
 
+import com.amazonaws.AbortedException
 import com.amazonaws.services.kinesis.AmazonKinesisClient
 import com.amazonaws.services.kinesis.clientlibrary.types.UserRecord
 import com.amazonaws.services.kinesis.model.{DescribeStreamRequest, GetRecordsRequest, Shard, _}
@@ -151,11 +152,8 @@ private[kinesis] case class KinesisReader(
     describeStreamRequest.setLimit(maxSupportedShardsPerStream)
 
     val describeStreamResult: DescribeStreamResult = runUninterruptibly {
-      retryOrTimeout[DescribeStreamResult](
-        s"Describe Streams") {
-        try {
+      retryOrTimeout[DescribeStreamResult]( s"Describe Streams") {
           getAmazonClient.describeStream(describeStreamRequest)
-        }
       }
     }
     val streamDescription = describeStreamResult.getStreamDescription()
@@ -214,6 +212,8 @@ private[kinesis] case class KinesisReader(
               logWarning(s"Error while $message [attempt = ${retryCount + 1}]", ptee)
             case lee: LimitExceededException =>
               logWarning(s"Error while $message [attempt = ${retryCount + 1}]", lee)
+            case ae: AbortedException =>
+              logWarning(s"Error while $message [attempt = ${retryCount + 1}]", ae)
             case e: Throwable =>
               throw new IllegalStateException(s"Error while $message", e)
           }
