@@ -21,6 +21,7 @@ import java.math.BigInteger
 import java.util
 import java.util.concurrent.{Executors, ThreadFactory}
 
+import com.amazonaws.AbortedException
 import com.amazonaws.services.kinesis.AmazonKinesisClient
 import com.amazonaws.services.kinesis.clientlibrary.types.UserRecord
 import com.amazonaws.services.kinesis.model.{DescribeStreamRequest, GetRecordsRequest, Shard, _}
@@ -38,7 +39,7 @@ import org.apache.spark.util.{ThreadUtils, UninterruptibleThread}
 private[kinesis] case class KinesisReader(
     readerOptions: Map[String, String],
     streamName: String,
-    kinesisCredsProvider: BasicCredentials,
+    kinesisCredsProvider: SparkAWSCredentials,
     endpointUrl: String
 ) extends Serializable with Logging {
 
@@ -151,15 +152,8 @@ private[kinesis] case class KinesisReader(
     describeStreamRequest.setLimit(maxSupportedShardsPerStream)
 
     val describeStreamResult: DescribeStreamResult = runUninterruptibly {
-      retryOrTimeout[DescribeStreamResult](
-        s"Describe Streams") {
-        try {
+      retryOrTimeout[DescribeStreamResult]( s"Describe Streams") {
           getAmazonClient.describeStream(describeStreamRequest)
-        } catch {
-          case e: Throwable =>
-            logWarning(s"Error while Describe stream ${e.getMessage}")
-            return Seq.empty[Shard]
-        }
       }
     }
     val streamDescription = describeStreamResult.getStreamDescription()
@@ -218,6 +212,8 @@ private[kinesis] case class KinesisReader(
               logWarning(s"Error while $message [attempt = ${retryCount + 1}]", ptee)
             case lee: LimitExceededException =>
               logWarning(s"Error while $message [attempt = ${retryCount + 1}]", lee)
+            case ae: AbortedException =>
+              logWarning(s"Error while $message [attempt = ${retryCount + 1}]", ae)
             case e: Throwable =>
               throw new IllegalStateException(s"Error while $message", e)
           }

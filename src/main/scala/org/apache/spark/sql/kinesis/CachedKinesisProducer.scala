@@ -85,6 +85,12 @@ private[kinesis] object CachedKinesisProducer extends Logging {
     val awsSecretKey = producerConfiguration.getOrElse(
       KinesisSourceProvider.AWS_SECRET_KEY, "").toString
 
+    val awsStsRoleArn = producerConfiguration.getOrElse(
+      KinesisSourceProvider.AWS_STS_ROLE_ARN, "").toString
+
+    val awsStsSessionName = producerConfiguration.getOrElse(
+      KinesisSourceProvider.AWS_STS_SESSION_NAME, "").toString
+
     val endpoint = producerConfiguration.getOrElse(
       KinesisSourceProvider.SINK_ENDPOINT_URL, KinesisSourceProvider.DEFAULT_KINESIS_ENDPOINT_URL)
       .toString
@@ -96,12 +102,20 @@ private[kinesis] object CachedKinesisProducer extends Logging {
 
     val region = getRegionNameByEndpoint(endpoint)
 
+    val kinesisCredsProvider = if (awsAccessKeyId.length > 0) {
+      BasicCredentials(awsAccessKeyId, awsSecretKey)
+    } else if (awsStsRoleArn.length > 0) {
+      STSCredentials(awsStsRoleArn, awsStsSessionName)
+    } else {
+      InstanceProfileCredentials
+    }
+
     val kinesisProducer = new Producer(new KinesisProducerConfiguration()
       .setRecordMaxBufferedTime(recordMaxBufferedTime)
       .setMaxConnections(maxConnections)
       .setAggregationEnabled(aggregation)
       .setCredentialsProvider(
-        new AWSStaticCredentialsProvider(new BasicAWSCredentials(awsAccessKeyId, awsSecretKey))
+        kinesisCredsProvider.provider
       )
       .setRegion(region)
     )

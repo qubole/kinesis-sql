@@ -55,7 +55,7 @@ private[kinesis] class KinesisSource(
     streamName: String,
     initialPosition: KinesisPosition,
     endPointURL: String,
-    kinesisCredsProvider: BasicCredentials
+    kinesisCredsProvider: SparkAWSCredentials
     )
   extends Source with Serializable with Logging {
 
