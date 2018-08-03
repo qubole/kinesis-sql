@@ -30,6 +30,7 @@ import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.types._
 import org.apache.spark.util.{ThreadUtils, UninterruptibleThread}
 
 
@@ -234,3 +235,14 @@ private[kinesis] case class KinesisReader(
 
 }
 
+private [kinesis]  object KinesisReader {
+
+  val kinesisSchema: StructType =
+      StructType(Seq(
+        StructField("data", BinaryType),
+        StructField("streamName", StringType),
+        StructField("partitionKey", StringType),
+        StructField("sequenceNumber", StringType),
+        StructField("approximateArrivalTimestamp", TimestampType))
+      )
+}

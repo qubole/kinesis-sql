@@ -187,7 +187,7 @@ private[kinesis] class KinesisSource(
 
   }
 
-  override def schema: StructType = kinesisSchema
+  override def schema: StructType = KinesisReader.kinesisSchema
 
   /** Stop this source and free any resources it has allocated. */
   override def stop(): Unit = synchronized {
@@ -228,14 +228,6 @@ private[kinesis] class KinesisSource(
 object KinesisSource {
 
   val VERSION = 1
-
-  val kinesisSchema: StructType = StructType(Seq(
-    StructField("data", BinaryType),
-    StructField("streamName", StringType),
-    StructField("partitionKey", StringType),
-    StructField("sequenceNumber", StringType),
-    StructField("approximateArrivalTimestamp", TimestampType)
-  ))
 
   private var _hadoopConf: SerializableConfiguration = null
 

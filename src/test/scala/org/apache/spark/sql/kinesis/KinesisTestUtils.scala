@@ -111,6 +111,15 @@ private[kinesis] class KinesisTestUtils(streamShardCount: Int = 2) extends Loggi
     waitForStreamToBeActive(_streamName)
   }
 
+  def splitShard : (Integer, Integer) = {
+    val shardToSplit = getShards().head
+    splitShard(shardToSplit.getShardId)
+    val (splitOpenShards, splitCloseShards) = getShards().partition {
+      shard => shard.getSequenceNumberRange.getEndingSequenceNumber == null
+    }
+    (splitOpenShards.size, splitCloseShards.size)
+  }
+
   def mergeShard(shardToMerge: String, adjacentShardToMerge: String): Unit = {
     val mergeShardRequest = new MergeShardsRequest
     mergeShardRequest.withStreamName(_streamName)
@@ -119,6 +128,21 @@ private[kinesis] class KinesisTestUtils(streamShardCount: Int = 2) extends Loggi
     kinesisClient.mergeShards(mergeShardRequest)
     // Wait for the shards to become active
     waitForStreamToBeActive(_streamName)
+  }
+
+
+  def mergeShard: (Integer, Integer) = {
+    val (openShard, closeShard) = getShards().partition {
+      shard => shard.getSequenceNumberRange.getEndingSequenceNumber == null
+    }
+    val Seq(shardToMerge, adjShard) = openShard
+    mergeShard(shardToMerge.getShardId, adjShard.getShardId)
+    val shardToSplit = getShards().head
+    val (mergedOpenShards, mergedCloseShards) =
+      getShards().partition {
+        shard => shard.getSequenceNumberRange.getEndingSequenceNumber == null
+      }
+    (mergedOpenShards.size, mergedCloseShards.size)
   }
 
   /**

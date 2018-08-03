@@ -18,7 +18,6 @@
 package org.apache.spark.sql.kinesis
 
 import com.amazonaws.services.kinesis.model.Shard
-import java.util
 import scala.collection.mutable
 
 import org.apache.spark.internal.Logging
@@ -32,10 +31,17 @@ import org.apache.spark.internal.Logging
 
 private[kinesis] object ShardSyncer extends Logging {
 
-  private def openShards(shards: Seq[Shard]): Seq[String] = {
+  def openShards(shards: Seq[Shard]): Seq[String] = {
     // List of open Shards
     shards.collect {
       case s: Shard if (s.getSequenceNumberRange.getEndingSequenceNumber == null) => s.getShardId
+    }
+  }
+
+  def closedShards(shards: Seq[Shard]): Seq[String] = {
+    // List of open Shards
+    shards.collect {
+      case s: Shard if (s.getSequenceNumberRange.getEndingSequenceNumber != null) => s.getShardId
     }
   }
 

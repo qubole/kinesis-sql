@@ -24,13 +24,14 @@ import scala.util.control.NonFatal
 
 import org.apache.spark.sql.execution.streaming.Offset
 import org.apache.spark.sql.execution.streaming.SerializedOffset
+import org.apache.spark.sql.sources.v2.reader.streaming.{Offset => OffsetV2, PartitionOffset}
 
 
  /*
   * @param shardsToOffsets
   */
 
-case class KinesisSourceOffset(shardsToOffsets: ShardOffsets) extends Offset {
+case class KinesisSourceOffset(shardsToOffsets: ShardOffsets) extends OffsetV2 {
   override def json: String = {
     val metadata = HashMap[String, String](
       "batchId" -> shardsToOffsets.batchId.toString,
@@ -46,6 +47,11 @@ case class KinesisSourceOffset(shardsToOffsets: ShardOffsets) extends Offset {
     Serialization.write(result)(KinesisSourceOffset.format)
     }
 }
+
+private[kinesis]
+case class KinesisSourcePartitionOffset(shardId: String, shardInfo: ShardInfo)
+  extends PartitionOffset
+
 
 object KinesisSourceOffset {
   implicit val format = Serialization.formats(NoTypeHints)
@@ -66,6 +72,25 @@ object KinesisSourceOffset {
   def apply(so: SerializedOffset): KinesisSourceOffset = {
     try {
       val readObj = Serialization.read[ Map[ String, Map[ String, String ] ] ](so.json)
+      val metadata = readObj.get("metadata")
+      val shardInfo: Array[ ShardInfo ] = readObj.filter(_._1 != "metadata").map {
+        case (shardId, value) => new ShardInfo(shardId.toString,
+          value.get("iteratorType").get,
+          value.get("iteratorPosition").get)
+      }.toArray
+      KinesisSourceOffset(new ShardOffsets(metadata.get("batchId").toLong,
+        metadata.get("streamName"), shardInfo))
+    } catch {
+      case NonFatal(x) => throw new IllegalArgumentException(x)
+    }
+  }
+
+  /*
+   * Returns [[KinesisSourceOffset]] from a JSON
+   */
+  def apply(json: String): KinesisSourceOffset = {
+    try {
+      val readObj = Serialization.read[ Map[ String, Map[ String, String ] ] ](json)
       val metadata = readObj.get("metadata")
       val shardInfo: Array[ ShardInfo ] = readObj.filter(_._1 != "metadata").map {
         case (shardId, value) => new ShardInfo(shardId.toString,

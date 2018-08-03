@@ -48,6 +48,10 @@ private[kinesis] case class ShardOffsets(
   def this(batchId: Long, streamName: String) {
     this(batchId, streamName, Array.empty[ShardInfo])
   }
+
+  def this(shardInfo: Array[ShardInfo]) {
+    this(-1, "", shardInfo)
+  }
 }
 
 
