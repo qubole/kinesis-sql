@@ -64,7 +64,7 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>amazon-kinesis-client</artifactId>
-      <version>${aws.kinesis.client.version}</version>
+      <version>1.8.10</version>
     </dependency>
     <dependency>
       <groupId>com.amazonaws</groupId>
