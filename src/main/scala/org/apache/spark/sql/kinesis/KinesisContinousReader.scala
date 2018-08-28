@@ -32,6 +32,16 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.Utils
 
 
+ /*
+  * A [[ContinuousReader]] for data from Kinesis.
+  *
+  * @param sourceOptions          Kinesis consumer params to use.
+  * @param streamName             Name of the Kinesis Stream.
+  * @param initialPosition        The Kinesis offsets to start reading data at.
+  * @param endpointUrl            endpoint Url for Kinesis Stream
+  * @param kinesisCredsProvider   AWS credentials provider to create amazon kinesis client
+  */
+
 class KinesisContinuousReader(
      sourceOptions: Map[String, String],
      streamName: String,
@@ -95,11 +105,11 @@ class KinesisContinuousReader(
         initialPosition)
 
       // In Continuous processing we are unable to find out about a closed shards
-      // using previous information. So we need to check it
+      // using previous information. So we need to check if a shard is closed
       // And remove it from latest Shard Information
 
       var syncedShardInfoMap: Map[String, ShardInfo] =
-      syncedShardInfo.map {
+        syncedShardInfo.map {
         s: ShardInfo => s.shardId -> s
       }.toMap
 
@@ -160,20 +170,18 @@ class KinesisContinuousReader(
 
   override def needsReconfiguration(): Boolean = {
     // check if currently open shards are different from known shards list
-    // knownOpenShards != null && openShards(kinesisReader.getShards()).toSet != knownOpenShards
-    var needsReconfiguration = false
     if (latestDescribeShardTimestamp == -1 ||
       ((latestDescribeShardTimestamp + describeShardInterval) < System.currentTimeMillis())) {
       latestDescribeShardTimestamp = System.currentTimeMillis()
       if (knownOpenShards != null) {
         try {
           val latestShards: Seq[Shard] = kinesisReader.getShards()
-          needsReconfiguration =
-            latestShards.nonEmpty && (openShards(latestShards).toSet -- knownOpenShards).size > 0
+          return (latestShards.nonEmpty &&
+            (openShards(latestShards).toSet -- knownOpenShards).size > 0)
         }
       }
     }
-    needsReconfiguration
+    false
   }
 
   override def mergeOffsets(offsets: Array[PartitionOffset]): Offset = {
@@ -188,12 +196,25 @@ class KinesisContinuousReader(
 
   override def commit(end: Offset): Unit = {}
 
-  override def stop(): Unit = {
+  override def stop(): Unit = synchronized {
+    kinesisReader.close()
   }
 
   override def toString(): String = s"KinesisSourceV2[$streamName]"
 
 }
+
+ /*
+  * A data reader factory for continuous Kinesis processing. This will be serialized and transformed
+  * into a full reader on executors.
+  *
+  * @param startOffset            The {ShardInfo} this data reader is responsible for.
+  *                               It has the offset to start reading from within the shard
+  * @param sourceOptions          Kinesis consumer params to use.
+  * @param streamName             Name of the Kinesis Stream.
+  * @param kinesisCredsProvider   AWS credentials provider to create amazon kinesis client
+  * @param endpointUrl            endpoint Url for Kinesis Stream
+  */
 
 case class KinesisContinuousDataReaderFactory(
                                                startOffset: ShardInfo,
@@ -210,12 +231,23 @@ case class KinesisContinuousDataReaderFactory(
   }
 }
 
+ /*
+  * A per-task data reader for continuous Kinesis processing.
+  *
+  * @param startOffset            The {ShardInfo} this data reader is responsible for.
+  *                               It has the offset to start reading from within the shard
+  * @param sourceOptions          Kinesis consumer params to use.
+  * @param streamName             Name of the Kinesis Stream.
+  * @param kinesisCredsProvider   AWS credentials provider to create amazon kinesis client
+  * @param endpointUrl            endpoint Url for Kinesis Stream
+  */
+
 class KinesisContinuousDataReader(
-                                   startOffset: ShardInfo,
-                                   sourceOptions: Map[String, String],
-                                   streamName: String,
-                                   kinesisCredsProvider: SparkAWSCredentials,
-                                   endpointUrl: String)
+     startOffset: ShardInfo,
+     sourceOptions: Map[String, String],
+     streamName: String,
+     kinesisCredsProvider: SparkAWSCredentials,
+     endpointUrl: String)
 
   extends ContinuousDataReader[UnsafeRow] with Logging {
 
@@ -243,15 +275,19 @@ class KinesisContinuousDataReader(
   var lastReadSequenceNumber: String = ""
   var hasShardClosed = false
 
+  /*
+   *   It checks if kinesis record buffer. If it is empty or we have already consumed all data,
+   *   we make AWS GetRecords call to get next batch of records
+   *   and save it the buffer.    *
+   *
+   */
   def fetchKinesisRecords(): Unit = {
     if ( fetchedRecords.length == 0 || currentIndex >= fetchedRecords.length ) {
       fetchedRecords = Array.empty
       currentIndex = 0
       while (fetchedRecords.length == 0 && !hasShardClosed) {
-        val currentTimestamp: Long = System.currentTimeMillis
-        val shardInterator = getShardIterator()
         val records: GetRecordsResult = kinesisReader.getKinesisRecords(
-          shardInterator, recordPerRequest)
+          getShardIterator(), recordPerRequest)
         // de-aggregate records
         val deaggregateRecords = kinesisReader.deaggregateRecords(records.getRecords, null)
         fetchedRecords = deaggregateRecords.asScala.toArray
@@ -289,8 +325,6 @@ class KinesisContinuousDataReader(
     var r: Record = null
     while (r == null) {
       if ( TaskContext.get().isInterrupted() || TaskContext.get().isCompleted() ) return false
-      // Our consumer.get is not interruptible, so we have to set a low poll timeout, leaving
-      // interrupt points to end the query rather than waiting for new data that might never come.
       try {
         fetchKinesisRecords
         if (fetchedRecords.length > 0 ) {
@@ -303,11 +337,9 @@ class KinesisContinuousDataReader(
           Thread.sleep(recordFetchAttemptIntervalMs)
         }
       } catch {
-        // We didn't read within the timeout. We're supposed to block indefinitely for new data, so
-        // swallow and ignore this.
-        // TODO
-        case _: TimeoutException =>
-          logInfo(s"Timeout Exception")
+        // The task can be interuppeted when the thread is sleeping. Swallow the exception
+        case _: InterruptedException =>
+          logInfo(s"Interrupted Exception")
       }
     }
     lastReadSequenceNumber = r.getSequenceNumber
@@ -336,7 +368,8 @@ class KinesisContinuousDataReader(
       KinesisSourcePartitionOffset(shardInfo.shardId, shardInfo)
   }
 
-  override def close(): Unit = {
-
+  override def close(): Unit = synchronized {
+    kinesisReader.close()
   }
+
 }

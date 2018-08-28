@@ -191,7 +191,7 @@ private[kinesis] class KinesisSource(
 
   /** Stop this source and free any resources it has allocated. */
   override def stop(): Unit = synchronized {
-    // nothing so far
+    kinesisReader.close()
   }
 
   override def commit(end: Offset): Unit = {

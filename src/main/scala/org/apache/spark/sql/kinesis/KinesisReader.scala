@@ -58,6 +58,7 @@ private[kinesis] case class KinesisReader(
       t
     }
   })
+
   val execContext = ExecutionContext.fromExecutorService(kinesisReaderThread)
 
   private val maxOffsetFetchAttempts =
@@ -82,6 +83,16 @@ private[kinesis] case class KinesisReader(
     val shards = describeKinesisStream
     logInfo(s"Describe Kinesis Stream:  ${shards}")
     shards
+  }
+
+  def close(): Unit = {
+    runUninterruptibly {
+      if (_amazonClient != null) {
+        _amazonClient.shutdown()
+        _amazonClient = null
+      }
+    }
+    kinesisReaderThread.shutdown()
   }
 
   def getShardIterator(shardId: String,

@@ -70,19 +70,7 @@ object KinesisSourceOffset {
    * Returns [[KinesisSourceOffset]] from a JSON [[SerializedOffset]]
    */
   def apply(so: SerializedOffset): KinesisSourceOffset = {
-    try {
-      val readObj = Serialization.read[ Map[ String, Map[ String, String ] ] ](so.json)
-      val metadata = readObj.get("metadata")
-      val shardInfo: Array[ ShardInfo ] = readObj.filter(_._1 != "metadata").map {
-        case (shardId, value) => new ShardInfo(shardId.toString,
-          value.get("iteratorType").get,
-          value.get("iteratorPosition").get)
-      }.toArray
-      KinesisSourceOffset(new ShardOffsets(metadata.get("batchId").toLong,
-        metadata.get("streamName"), shardInfo))
-    } catch {
-      case NonFatal(x) => throw new IllegalArgumentException(x)
-    }
+    apply(so.json)
   }
 
   /*
