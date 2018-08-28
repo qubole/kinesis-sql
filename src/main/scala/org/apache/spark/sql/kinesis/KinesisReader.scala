@@ -31,6 +31,7 @@ import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.types._
 import org.apache.spark.util.{ThreadUtils, UninterruptibleThread}
 
 
@@ -57,6 +58,7 @@ private[kinesis] case class KinesisReader(
       t
     }
   })
+
   val execContext = ExecutionContext.fromExecutorService(kinesisReaderThread)
 
   private val maxOffsetFetchAttempts =
@@ -81,6 +83,16 @@ private[kinesis] case class KinesisReader(
     val shards = describeKinesisStream
     logInfo(s"Describe Kinesis Stream:  ${shards}")
     shards
+  }
+
+  def close(): Unit = {
+    runUninterruptibly {
+      if (_amazonClient != null) {
+        _amazonClient.shutdown()
+        _amazonClient = null
+      }
+    }
+    kinesisReaderThread.shutdown()
   }
 
   def getShardIterator(shardId: String,
@@ -234,3 +246,14 @@ private[kinesis] case class KinesisReader(
 
 }
 
+private [kinesis]  object KinesisReader {
+
+  val kinesisSchema: StructType =
+      StructType(Seq(
+        StructField("data", BinaryType),
+        StructField("streamName", StringType),
+        StructField("partitionKey", StringType),
+        StructField("sequenceNumber", StringType),
+        StructField("approximateArrivalTimestamp", TimestampType))
+      )
+}

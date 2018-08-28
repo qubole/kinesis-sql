@@ -48,6 +48,10 @@ private[kinesis] case class ShardOffsets(
   def this(batchId: Long, streamName: String) {
     this(batchId, streamName, Array.empty[ShardInfo])
   }
+
+  def this(shardInfo: Array[ShardInfo]) {
+    this(-1, "", shardInfo)
+  }
 }
 
 
@@ -175,9 +179,9 @@ private[kinesis] class KinesisSourceRDD(
           record
         }
       }
-      override protected def close(): Unit = {
-        // close
-      }
+      override protected def close(): Unit = synchronized {
+        kinesisReader.close()
+       }
     }
 
     lazy val metadataCommitter: MetadataCommitter[ShardInfo] = {

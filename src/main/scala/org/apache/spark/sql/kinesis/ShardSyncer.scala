@@ -18,7 +18,6 @@
 package org.apache.spark.sql.kinesis
 
 import com.amazonaws.services.kinesis.model.Shard
-import java.util
 import scala.collection.mutable
 
 import org.apache.spark.internal.Logging
@@ -31,13 +30,6 @@ import org.apache.spark.internal.Logging
  */
 
 private[kinesis] object ShardSyncer extends Logging {
-
-  private def openShards(shards: Seq[Shard]): Seq[String] = {
-    // List of open Shards
-    shards.collect {
-      case s: Shard if (s.getSequenceNumberRange.getEndingSequenceNumber == null) => s.getShardId
-    }
-  }
 
   private def getShardIdToChildShardsMap(latestShards: Seq[Shard]):
     mutable.Map[String, List[String ]] = {
@@ -144,6 +136,31 @@ private[kinesis] object ShardSyncer extends Logging {
       parentShardIds.add(adjacentParentShardId)
     }
     return parentShardIds
+  }
+
+  /*
+   *  Takes a sequence of Shard as input params
+   *  It iterate though each shards
+   *  and return a sequence of shard-ids of open Shards
+   */
+  def openShards(shards: Seq[Shard]): Seq[String] = {
+    // List of open Shards
+    shards.collect {
+      case s: Shard if (s.getSequenceNumberRange.getEndingSequenceNumber == null) => s.getShardId
+    }
+  }
+
+  /*
+   *  Takes a sequence of Shard as input params
+   *  It iterate though each shards
+   *  and return a sequence of shard-ids of closed Shards
+   */
+
+  def closedShards(shards: Seq[Shard]): Seq[String] = {
+    // List of closed Shards
+    shards.collect {
+      case s: Shard if (s.getSequenceNumberRange.getEndingSequenceNumber != null) => s.getShardId
+    }
   }
 
   def getLatestShardInfo(
