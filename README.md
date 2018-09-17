@@ -108,7 +108,7 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 | ------------- |:-------------:| -----:|
 | streamName     | - | Name of the stream in Kinesis to read from |
 | endpointUrl     |   https://kinesis.us-east-1.amazonaws.com    |   end-point URL for Kinesis Stream|
-| awsAccessKeyId |    -     |    AWS Credentials for  Kinesis describe, read record operations    
+| awsAccessKeyId |    -     |    AWS Credentials for  Kinesis describe, read record operations|   
 | awsSecretKey |      -  |    AWS Credentials for  Kinesis describe, read record |
 | startingPosition |      LATEST |    Starting Position in Kinesis to fetch data from. Possible values are "LATEST" & "TRIM_HORIZON" |
 | describeShardInterval |      1s (1 second) |  Minimum Interval between two DescribeStream API calls to consider resharding  |
@@ -130,7 +130,7 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 | kinesis.executor.aggregationEnabled | true | Specify if records should be aggregated before sending them to Kinesis | 
 
 ## Roadmap
-*  Above library has been developed and tested against Spark 2.2.x.  We need to migrate to DataSource V2 APIs released in Spark 2.3.0
+*  We need to migrate to DataSource V2 APIs introduced in Spark 2.3.0 once it is stable
 
 ## Acknowledgement
 
