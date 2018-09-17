@@ -21,8 +21,6 @@ import java.util.{Locale, Optional}
 
 import scala.collection.JavaConverters._
 
-import com.amazonaws.auth.{AWSCredentialsProvider, InstanceProfileCredentialsProvider}
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.execution.streaming.{Sink, Source}

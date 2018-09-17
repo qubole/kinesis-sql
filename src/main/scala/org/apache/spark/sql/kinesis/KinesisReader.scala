@@ -73,7 +73,7 @@ private[kinesis] case class KinesisReader(
 
   private def getAmazonClient(): AmazonKinesisClient = {
     if (_amazonClient == null) {
-      _amazonClient = new AmazonKinesisClient(kinesisCredsProvider.provider.getCredentials)
+      _amazonClient = new AmazonKinesisClient(kinesisCredsProvider.provider)
       _amazonClient.setEndpoint(endpointUrl)
     }
     _amazonClient
