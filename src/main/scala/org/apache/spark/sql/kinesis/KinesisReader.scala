@@ -19,6 +19,7 @@ package org.apache.spark.sql.kinesis
 
 import java.math.BigInteger
 import java.util
+import java.util.ArrayList
 import java.util.concurrent.{Executors, ThreadFactory}
 
 import com.amazonaws.AbortedException
@@ -168,6 +169,22 @@ private[kinesis] case class KinesisReader(
           getAmazonClient.describeStream(describeStreamRequest)
       }
     }
+
+    val shards = new ArrayList[Shard]()
+    var exclusiveStartShardId : String = null
+
+    do {
+        describeStreamRequest.setExclusiveStartShardId( exclusiveStartShardId )
+        val describeStreamResult = getAmazonClient.describeStream( describeStreamRequest )
+        shards.addAll( describeStreamResult.getStreamDescription().getShards() )
+        if (describeStreamResult.getStreamDescription().getHasMoreShards() && shards.size() > 0) {
+          exclusiveStartShardId = shards.get(shards.size() - 1).getShardId();
+        } else {
+          exclusiveStartShardId = null
+       }
+    } while ( exclusiveStartShardId != null )
+
+    /*
     val streamDescription = describeStreamResult.getStreamDescription()
     if ( streamDescription.getHasMoreShards() ) {
       // TODO FIX ME
@@ -176,8 +193,10 @@ private[kinesis] case class KinesisReader(
     }
     logInfo(s"Status of the Stream is  ${streamDescription.getStreamStatus})")
     // TODO what to do if status is not active?
-
    streamDescription.getShards.asScala
+   */
+   shards.asScala.toSeq
+
   }
 
   /*
