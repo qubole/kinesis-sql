@@ -20,24 +20,21 @@ package org.apache.spark.sql.kinesis
 import com.amazonaws.services.kinesis.model.Record
 
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow
-import org.apache.spark.sql.catalyst.expressions.codegen.{BufferHolder, UnsafeRowWriter}
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.unsafe.types.UTF8String
 
 private[kinesis] class KinesisRecordToUnsafeRowConverter {
-  private val sharedRow = new UnsafeRow(5)
-  private val bufferHolder = new BufferHolder(sharedRow)
-  private val rowWriter = new UnsafeRowWriter(bufferHolder, 5)
+  private val rowWriter = new UnsafeRowWriter(5)
 
   def toUnsafeRow(record: Record, streamName: String): UnsafeRow = {
-    bufferHolder.reset()
+    rowWriter.reset()
     rowWriter.write(0, record.getData.array())
     rowWriter.write(1, UTF8String.fromString(streamName))
     rowWriter.write(2, UTF8String.fromString(record.getPartitionKey))
     rowWriter.write(3, UTF8String.fromString(record.getSequenceNumber))
     rowWriter.write(4, DateTimeUtils.fromJavaTimestamp(
       new java.sql.Timestamp(record.getApproximateArrivalTimestamp.getTime)))
-    sharedRow.setTotalSize(bufferHolder.totalSize)
-    sharedRow
+    rowWriter.getRow
   }
 }

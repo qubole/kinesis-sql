@@ -18,38 +18,38 @@
 package org.apache.spark.sql.kinesis
 
 import java.{util => ju}
-import java.util.concurrent.TimeoutException
 
 import com.amazonaws.services.kinesis.model.{GetRecordsResult, Record, Shard}
 import scala.util.control.NonFatal
 
 import org.apache.spark.TaskContext
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow
 import org.apache.spark.sql.kinesis.ShardSyncer.{closedShards, getLatestShardInfo, openShards}
 import org.apache.spark.sql.sources.v2.reader._
-import org.apache.spark.sql.sources.v2.reader.streaming.{ContinuousDataReader, ContinuousReader, Offset, PartitionOffset}
+import org.apache.spark.sql.sources.v2.reader.streaming.{ContinuousInputPartitionReader, ContinuousReader, Offset, PartitionOffset}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.Utils
 
 
- /*
-  * A [[ContinuousReader]] for data from Kinesis.
-  *
-  * @param sourceOptions          Kinesis consumer params to use.
-  * @param streamName             Name of the Kinesis Stream.
-  * @param initialPosition        The Kinesis offsets to start reading data at.
-  * @param endpointUrl            endpoint Url for Kinesis Stream
-  * @param kinesisCredsProvider   AWS credentials provider to create amazon kinesis client
-  */
+/*
+ * A [[ContinuousReader]] for data from Kinesis.
+ *
+ * @param sourceOptions          Kinesis consumer params to use.
+ * @param streamName             Name of the Kinesis Stream.
+ * @param initialPosition        The Kinesis offsets to start reading data at.
+ * @param endpointUrl            endpoint Url for Kinesis Stream
+ * @param kinesisCredsProvider   AWS credentials provider to create amazon kinesis client
+ */
 
 class KinesisContinuousReader(
-     sourceOptions: Map[String, String],
-     streamName: String,
-     initialPosition: KinesisPosition,
-     endPointURL: String,
-     kinesisCredsProvider: SparkAWSCredentials)
-  extends ContinuousReader with SupportsScanUnsafeRow with Logging {
+                               sourceOptions: Map[String, String],
+                               streamName: String,
+                               initialPosition: KinesisPosition,
+                               endPointURL: String,
+                               kinesisCredsProvider: SparkAWSCredentials)
+  extends ContinuousReader with Logging {
 
   private var currentShardOffsets: ShardOffsets = _
 
@@ -90,7 +90,7 @@ class KinesisContinuousReader(
   }
 
 
-  override def createUnsafeRowReaderFactories(): ju.List[DataReaderFactory[UnsafeRow]] = {
+  override def planInputPartitions(): ju.List[InputPartition[InternalRow]] = {
     import scala.collection.JavaConverters._
 
     logInfo(s"Current Offset is ${currentShardOffsets.toString}")
@@ -111,8 +111,8 @@ class KinesisContinuousReader(
 
       var syncedShardInfoMap: Map[String, ShardInfo] =
         syncedShardInfo.map {
-        s: ShardInfo => s.shardId -> s
-      }.toMap
+          s: ShardInfo => s.shardId -> s
+        }.toMap
 
       val prevOpenShardIdToShardInfoMap =
         prevShardsInfo.filter { s =>
@@ -155,7 +155,7 @@ class KinesisContinuousReader(
     logInfo(s"Known Open Shards are $knownOpenShards")
 
     val factories = latestShardInfo.flatMap { si =>
-      Some(new KinesisContinuousDataReaderFactory(
+      Some(new KinesisContinuousInputPartition(
         si,
         sourceOptions,
         streamName,
@@ -166,7 +166,7 @@ class KinesisContinuousReader(
 
     logInfo(s"Processing ${latestShardInfo.length} shards from " +
       s"${latestShardInfo.foreach(s => s.shardId)}")
-    factories.map(_.asInstanceOf[DataReaderFactory[UnsafeRow]]).toSeq.asJava
+    factories.map(_.asInstanceOf[InputPartition[InternalRow]]).toSeq.asJava
   }
 
   override def needsReconfiguration(): Boolean = {
@@ -179,11 +179,10 @@ class KinesisContinuousReader(
           val latestShards: Seq[Shard] = kinesisReader.getShards()
           return (latestShards.nonEmpty &&
             (openShards(latestShards).toSet -- knownOpenShards).size > 0)
-        }
-        catch {
-               case NonFatal(error) =>
-                  val failMessage = s"Exception reading shards from kinesis: \n $error"
-                  logError(failMessage)
+        } catch {
+          case NonFatal(error) =>
+            val failMessage = s"Exception reading shards from kinesis: \n $error"
+            logError(failMessage)
         }
       }
     }
@@ -210,52 +209,63 @@ class KinesisContinuousReader(
 
 }
 
- /*
-  * A data reader factory for continuous Kinesis processing. This will be serialized and transformed
-  * into a full reader on executors.
-  *
-  * @param startOffset            The {ShardInfo} this data reader is responsible for.
-  *                               It has the offset to start reading from within the shard
-  * @param sourceOptions          Kinesis consumer params to use.
-  * @param streamName             Name of the Kinesis Stream.
-  * @param kinesisCredsProvider   AWS credentials provider to create amazon kinesis client
-  * @param endpointUrl            endpoint Url for Kinesis Stream
-  */
+/*
+ * An input partition for continuous Kinesis processing. This will be serialized and transformed
+ * into a full reader on executors.
+ *
+ * @param startOffset            The {ShardInfo} this data reader is responsible for.
+ *                               It has the offset to start reading from within the shard
+ * @param sourceOptions          Kinesis consumer params to use.
+ * @param streamName             Name of the Kinesis Stream.
+ * @param kinesisCredsProvider   AWS credentials provider to create amazon kinesis client
+ * @param endpointUrl            endpoint Url for Kinesis Stream
+ */
 
-case class KinesisContinuousDataReaderFactory(
-                                               startOffset: ShardInfo,
-                                               sourceOptions: Map[String, String],
-                                               streamName: String,
-                                               kinesisCredsProvider: SparkAWSCredentials,
-                                               endpointUrl: String)
-  extends DataReaderFactory[UnsafeRow] {
+case class KinesisContinuousInputPartition(
+                                            startOffset: ShardInfo,
+                                            sourceOptions: Map[String, String],
+                                            streamName: String,
+                                            kinesisCredsProvider: SparkAWSCredentials,
+                                            endpointUrl: String)
+  extends ContinuousInputPartition[InternalRow] {
 
-  override def createDataReader(): KinesisContinuousDataReader = {
-    new KinesisContinuousDataReader(
+  override def createContinuousReader(
+                                       offset: PartitionOffset): InputPartitionReader[InternalRow] = {
+
+    val kinesisOffset = offset.asInstanceOf[KinesisSourcePartitionOffset]
+    require(kinesisOffset.shardInfo == startOffset,
+      s"Expected shardIndo: $startOffset, but got: ${kinesisOffset.shardInfo}")
+
+    new KinesisContinuousInputPartitionReader(
+      kinesisOffset.shardInfo, sourceOptions,
+      streamName, kinesisCredsProvider, endpointUrl)
+  }
+
+  override def createPartitionReader(): KinesisContinuousInputPartitionReader = {
+    new KinesisContinuousInputPartitionReader(
       startOffset, sourceOptions,
       streamName, kinesisCredsProvider, endpointUrl)
   }
 }
 
- /*
-  * A per-task data reader for continuous Kinesis processing.
-  *
-  * @param startOffset            The {ShardInfo} this data reader is responsible for.
-  *                               It has the offset to start reading from within the shard
-  * @param sourceOptions          Kinesis consumer params to use.
-  * @param streamName             Name of the Kinesis Stream.
-  * @param kinesisCredsProvider   AWS credentials provider to create amazon kinesis client
-  * @param endpointUrl            endpoint Url for Kinesis Stream
-  */
+/*
+ * A per-task data reader for continuous Kinesis processing.
+ *
+ * @param startOffset            The {ShardInfo} this data reader is responsible for.
+ *                               It has the offset to start reading from within the shard
+ * @param sourceOptions          Kinesis consumer params to use.
+ * @param streamName             Name of the Kinesis Stream.
+ * @param kinesisCredsProvider   AWS credentials provider to create amazon kinesis client
+ * @param endpointUrl            endpoint Url for Kinesis Stream
+ */
 
-class KinesisContinuousDataReader(
-     startOffset: ShardInfo,
-     sourceOptions: Map[String, String],
-     streamName: String,
-     kinesisCredsProvider: SparkAWSCredentials,
-     endpointUrl: String)
-
-  extends ContinuousDataReader[UnsafeRow] with Logging {
+class KinesisContinuousInputPartitionReader(
+                                             startOffset: ShardInfo,
+                                             sourceOptions: Map[String, String],
+                                             streamName: String,
+                                             kinesisCredsProvider: SparkAWSCredentials,
+                                             endpointUrl: String)
+  extends ContinuousInputPartitionReader[InternalRow] with Logging {
 
   import scala.collection.JavaConverters._
 
@@ -297,7 +307,7 @@ class KinesisContinuousDataReader(
         // de-aggregate records
         val deaggregateRecords = kinesisReader.deaggregateRecords(records.getRecords, null)
         fetchedRecords = deaggregateRecords.asScala.toArray
-         _shardIterator = records.getNextShardIterator
+        _shardIterator = records.getNextShardIterator
         if ( _shardIterator == null ) {
           hasShardClosed = true
           logInfo(s"Shard ${startOffset.shardId} is closed. No new records to read")
@@ -371,7 +381,7 @@ class KinesisContinuousDataReader(
         logDebug(s"No Record read so far. Returning last known offset")
         startOffset
       }
-      KinesisSourcePartitionOffset(shardInfo.shardId, shardInfo)
+    KinesisSourcePartitionOffset(shardInfo.shardId, shardInfo)
   }
 
   override def close(): Unit = synchronized {
