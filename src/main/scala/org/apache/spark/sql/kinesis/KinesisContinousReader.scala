@@ -21,6 +21,7 @@ import java.{util => ju}
 import java.util.concurrent.TimeoutException
 
 import com.amazonaws.services.kinesis.model.{GetRecordsResult, Record, Shard}
+import scala.util.control.NonFatal
 
 import org.apache.spark.TaskContext
 import org.apache.spark.internal.Logging
@@ -178,6 +179,11 @@ class KinesisContinuousReader(
           val latestShards: Seq[Shard] = kinesisReader.getShards()
           return (latestShards.nonEmpty &&
             (openShards(latestShards).toSet -- knownOpenShards).size > 0)
+        }
+        catch {
+               case NonFatal(error) =>
+                  val failMessage = s"Exception reading shards from kinesis: \n $error"
+                  logError(failMessage)
         }
       }
     }
