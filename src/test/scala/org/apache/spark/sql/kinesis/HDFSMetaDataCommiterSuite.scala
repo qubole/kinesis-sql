@@ -41,13 +41,13 @@ class HDFSMetaDataCommiterSuite extends SparkFunSuite with SharedSQLContext {
 
       assert(metadataCommitter.add(1, "Shard-000001", "one"))
       assert(metadataCommitter.add(1, "Shard-000002", "two"))
-      assert(metadataCommitter.get(1) === Seq("one", "two"))
+      assert(metadataCommitter.get(1).toSet === Set("one", "two"))
 
       // Adding the same batch over-writes the previous entry
       // This is required since re-attempt of a failed task will
       // update in same location
       assert(metadataCommitter.add(1, "Shard-000001", "updated-one"))
-      assert(metadataCommitter.get(1) === Seq("updated-one", "two"))
+      assert(metadataCommitter.get(1).toSet === Set("updated-one", "two"))
     }
   }
 
@@ -72,7 +72,7 @@ class HDFSMetaDataCommiterSuite extends SparkFunSuite with SharedSQLContext {
       // There should be exactly one file, called "2", in the metadata directory.
       val allFiles = new File(metadataCommitter.metadataPath.toString).listFiles().toSeq
       assert(allFiles.size == 1)
-      assert(allFiles(0).getName() == "2")
+      assert(allFiles.head.getName == "2")
     }
   }
 }

@@ -72,7 +72,7 @@ class KinesisContinuousReader(
 
     currentShardOffsets = Option(start.orElse(null))
       .map(off => KinesisSourceOffset.getShardOffsets(off.asInstanceOf[KinesisSourceOffset]))
-      .getOrElse{
+      .getOrElse {
         val latestShards = kinesisReader.getShards()
         val latestShardInfo: Seq[ShardInfo] = if (latestShards.nonEmpty) {
           ShardSyncer.getLatestShardInfo(latestShards, Seq.empty[ShardInfo], initialPosition)
@@ -136,7 +136,7 @@ class KinesisContinuousReader(
 
               val records = kinesisReader.getKinesisRecords(shardIterator, 1)
 
-              if (records.getRecords.size() == 0 && records.getNextShardIterator == null)  {
+              if (records.getRecords.size() == 0 && records.getNextShardIterator == null) {
                 // remove the shardInfo from the map
                 logInfo(s"Removing shard $shardId from list of new shard Info")
                 syncedShardInfoMap -= shardId
@@ -230,7 +230,8 @@ case class KinesisContinuousInputPartition(
   extends ContinuousInputPartition[InternalRow] {
 
   override def createContinuousReader(
-                                       offset: PartitionOffset): InputPartitionReader[InternalRow] = {
+                                       offset: PartitionOffset
+                                     ): InputPartitionReader[InternalRow] = {
 
     val kinesisOffset = offset.asInstanceOf[KinesisSourcePartitionOffset]
     require(kinesisOffset.shardInfo == startOffset,
@@ -298,7 +299,7 @@ class KinesisContinuousInputPartitionReader(
    *
    */
   def fetchKinesisRecords(): Unit = {
-    if ( fetchedRecords.length == 0 || currentIndex >= fetchedRecords.length ) {
+    if (fetchedRecords.length == 0 || currentIndex >= fetchedRecords.length) {
       fetchedRecords = Array.empty
       currentIndex = 0
       while (fetchedRecords.length == 0 && !hasShardClosed) {
@@ -308,7 +309,7 @@ class KinesisContinuousInputPartitionReader(
         val deaggregateRecords = kinesisReader.deaggregateRecords(records.getRecords, null)
         fetchedRecords = deaggregateRecords.asScala.toArray
         _shardIterator = records.getNextShardIterator
-        if ( _shardIterator == null ) {
+        if (_shardIterator == null) {
           hasShardClosed = true
           logInfo(s"Shard ${startOffset.shardId} is closed. No new records to read")
         }
@@ -325,7 +326,7 @@ class KinesisContinuousInputPartitionReader(
         startOffset.iteratorType,
         startOffset.iteratorPosition)
     }
-    assert(_shardIterator!=null)
+    assert(_shardIterator != null)
     _shardIterator
   }
 
@@ -340,10 +341,10 @@ class KinesisContinuousInputPartitionReader(
   override def next(): Boolean = {
     var r: Record = null
     while (r == null) {
-      if ( TaskContext.get().isInterrupted() || TaskContext.get().isCompleted() ) return false
+      if (TaskContext.get().isInterrupted() || TaskContext.get().isCompleted()) return false
       try {
         fetchKinesisRecords
-        if (fetchedRecords.length > 0 ) {
+        if (fetchedRecords.length > 0) {
           logDebug(s"length of fetchedRecords is ${fetchedRecords.length}," +
             s" currentIndex = ${currentIndex}")
           r = fetchedRecords(currentIndex)
@@ -375,7 +376,7 @@ class KinesisContinuousInputPartitionReader(
 
   override def getOffset(): KinesisSourcePartitionOffset = {
     val shardInfo: ShardInfo =
-      if ( !lastReadSequenceNumber.isEmpty ) {
+      if (!lastReadSequenceNumber.isEmpty) {
         new ShardInfo(startOffset.shardId, new AfterSequenceNumber(lastReadSequenceNumber))
       } else {
         logDebug(s"No Record read so far. Returning last known offset")
