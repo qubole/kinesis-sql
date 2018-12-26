@@ -19,6 +19,7 @@ package org.apache.spark.sql.kinesis
 
 import java.math.BigInteger
 import java.util
+import java.util.ArrayList
 import java.util.concurrent.{Executors, ThreadFactory}
 
 import com.amazonaws.AbortedException
@@ -31,6 +32,7 @@ import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.types._
 import org.apache.spark.util.{ThreadUtils, UninterruptibleThread}
 
 
@@ -57,6 +59,7 @@ private[kinesis] case class KinesisReader(
       t
     }
   })
+
   val execContext = ExecutionContext.fromExecutorService(kinesisReaderThread)
 
   private val maxOffsetFetchAttempts =
@@ -71,7 +74,7 @@ private[kinesis] case class KinesisReader(
 
   private def getAmazonClient(): AmazonKinesisClient = {
     if (_amazonClient == null) {
-      _amazonClient = new AmazonKinesisClient(kinesisCredsProvider.provider.getCredentials)
+      _amazonClient = new AmazonKinesisClient(kinesisCredsProvider.provider)
       _amazonClient.setEndpoint(endpointUrl)
     }
     _amazonClient
@@ -81,6 +84,16 @@ private[kinesis] case class KinesisReader(
     val shards = describeKinesisStream
     logInfo(s"Describe Kinesis Stream:  ${shards}")
     shards
+  }
+
+  def close(): Unit = {
+    runUninterruptibly {
+      if (_amazonClient != null) {
+        _amazonClient.shutdown()
+        _amazonClient = null
+      }
+    }
+    kinesisReaderThread.shutdown()
   }
 
   def getShardIterator(shardId: String,
@@ -156,16 +169,23 @@ private[kinesis] case class KinesisReader(
           getAmazonClient.describeStream(describeStreamRequest)
       }
     }
-    val streamDescription = describeStreamResult.getStreamDescription()
-    if ( streamDescription.getHasMoreShards() ) {
-      // TODO FIX ME
-      throw new IllegalStateException(s" Upto $maxSupportedShardsPerStream " +
-        s"Shards per Stream is supported")
-    }
-    logInfo(s"Status of the Stream is  ${streamDescription.getStreamStatus})")
-    // TODO what to do if status is not active?
 
-   streamDescription.getShards.asScala
+    val shards = new ArrayList[Shard]()
+    var exclusiveStartShardId : String = null
+
+    do {
+        describeStreamRequest.setExclusiveStartShardId( exclusiveStartShardId )
+        val describeStreamResult = getAmazonClient.describeStream( describeStreamRequest )
+        shards.addAll( describeStreamResult.getStreamDescription().getShards() )
+        if (describeStreamResult.getStreamDescription().getHasMoreShards() && shards.size() > 0) {
+          exclusiveStartShardId = shards.get(shards.size() - 1).getShardId();
+        } else {
+          exclusiveStartShardId = null
+       }
+    } while ( exclusiveStartShardId != null )
+
+   shards.asScala.toSeq
+
   }
 
   /*
@@ -234,3 +254,14 @@ private[kinesis] case class KinesisReader(
 
 }
 
+private [kinesis]  object KinesisReader {
+
+  val kinesisSchema: StructType =
+      StructType(Seq(
+        StructField("data", BinaryType),
+        StructField("streamName", StringType),
+        StructField("partitionKey", StringType),
+        StructField("sequenceNumber", StringType),
+        StructField("approximateArrivalTimestamp", TimestampType))
+      )
+}

@@ -109,7 +109,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
       .option("startingposition", "TRIM_HORIZON")
 
     val kinesis = reader.load()
-    assert (kinesis.schema == KinesisSource.kinesisSchema)
+    assert (kinesis.schema == KinesisReader.kinesisSchema)
     val result = kinesis.selectExpr("CAST(data AS STRING)", "streamName",
       "partitionKey", "sequenceNumber", "CAST(approximateArrivalTimestamp AS TIMESTAMP)")
       .as[(String, String, String, String, Long)]
