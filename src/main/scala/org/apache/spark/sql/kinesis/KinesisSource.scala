@@ -75,7 +75,8 @@ private[kinesis] class KinesisSource(
   require(minBatchesToRetain > 0, "minBatchesToRetain has to be positive")
 
   private val describeShardInterval: Long = {
-    Utils.timeStringAsMs(sourceOptions.getOrElse("describeShardInterval", "1s"))
+    Utils.timeStringAsMs(sourceOptions.getOrElse(KinesisSourceProvider.DESCRIBE_SHARD_INTERVAL,
+      "1s"))
   }
 
   require(describeShardInterval >= 0, "describeShardInterval cannot be less than 0 sec")
@@ -96,6 +97,11 @@ private[kinesis] class KinesisSource(
 
   private def metaDataCommitterPath: String = {
     sourceOptions.getOrElse("executor.metadata.path", metadataPath).toString
+  }
+
+  def options: Map[String, String] = {
+    // This function is used for testing
+    sourceOptions
   }
 
   /** Returns the shards position to start reading data from */

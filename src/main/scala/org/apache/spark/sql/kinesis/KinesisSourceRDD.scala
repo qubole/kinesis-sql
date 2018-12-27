@@ -102,13 +102,14 @@ private[kinesis] class KinesisSourceRDD(
     )
 
     val maxFetchTimeInMs =
-    sourceOptions.getOrElse("executor.maxFetchTimeInMs", "1000").toLong
+    sourceOptions.getOrElse("executor.maxFetchTimeInMs".toLowerCase(Locale.ROOT), "1000").toLong
 
     val maxRecordsPerShard =
-    sourceOptions.getOrElse("executor.maxFetchRecordsPerShard", "100000").toLong
+    sourceOptions.getOrElse("executor.maxFetchRecordsPerShard".toLowerCase(Locale.ROOT),
+      "100000").toLong
 
     val recordPerRequest =
-      sourceOptions.getOrElse("executor.maxRecordPerRead", "10000").toInt
+      sourceOptions.getOrElse("executor.maxRecordPerRead".toLowerCase(Locale.ROOT), "10000").toInt
 
     val startTimestamp: Long = System.currentTimeMillis
     var lastReadSequenceNumber: String = ""
