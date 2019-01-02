@@ -41,7 +41,7 @@ Refer [Amazon Docs](https://docs.aws.amazon.com/cli/latest/reference/kinesis/cre
 
 #### Example Streaming Job
 
-Refering $SPARK_HOME to the Spark installation directory. 
+Refering $SPARK_HOME to the Spark installation directory.
 
 ###### Open Spark-Shell
 
