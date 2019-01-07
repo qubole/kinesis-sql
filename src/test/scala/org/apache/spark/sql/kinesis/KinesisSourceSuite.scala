@@ -87,6 +87,43 @@ class KinesisSourceOptionsSuite extends StreamTest with SharedSQLContext {
     testBadOptions()("Stream name is a required field")
     testBadOptions("streamname" -> "")("Stream name is a required field")
   }
+
+  test("Kinesis Source Options should always be case insensitive") {
+
+    def testKinesisOptions(newOptions: (String, String)*): Unit = {
+      var options = Map.empty[String, String]
+      options = options + ("streamname" -> "tmpStream")
+      newOptions.foreach {
+        case (k, v) => options = options + (k -> v)
+      }
+      // caseInsensitiveOptions are used to create a source
+      val caseInsensitiveOptions = options.map(
+        kv => kv.copy(_1 = kv._1.toLowerCase(Locale.ROOT))
+      )
+      val source = (new KinesisSourceProvider)
+        .createSource(
+          spark.sqlContext,
+          "/tmp/path",
+          None,
+          "kinesis",
+          caseInsensitiveOptions
+        )
+      val kinesisSourceOptions = source.asInstanceOf[KinesisSource].options
+      newOptions.foreach {
+        case (k, v) =>
+          val keytoCheck = k.toLowerCase(Locale.ROOT).drop(8).toString
+          assert(kinesisSourceOptions.getOrElse(keytoCheck, "None").toString.equals(v.toString))
+      }
+    }
+
+    testKinesisOptions(
+      ("kinesis.client.describeShardInterval", "100s")
+    )
+    testKinesisOptions(
+      ("kinesis.executor.maxFetchTimeInMs", "10000"),
+      ("kinesis.client.numRetries", "2")
+    )
+  }
 }
 
 abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSourceTest {
@@ -180,6 +217,53 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
       waitUntilBatchProcessed,
       CheckAnswer(1, 2, 3, 4, 5)  // should not have 0
     )
+  }
+
+
+  testIfEnabled("Earliest can be used as Starting position") {
+    val localTestUtils = new KPLBasedKinesisTestUtils(2)
+    localTestUtils.createStream()
+    try {
+      localTestUtils.pushData(Array("0"), aggregateTestData)
+      // sleep for 2 s to avoid any concurrency issues
+      Thread.sleep(2000.toLong)
+      val clock = new StreamManualClock
+
+      val waitUntilBatchProcessed = AssertOnQuery { q =>
+        eventually(Timeout(streamingTimeout)) {
+          if ( !q.exception.isDefined ) {
+            assert(clock.isStreamWaitingAt(clock.getTimeMillis()))
+          }
+        }
+        if ( q.exception.isDefined ) {
+          throw q.exception.get
+        }
+        true
+      }
+
+      val reader = spark
+        .readStream
+        .format("kinesis")
+        .option("streamName", localTestUtils.streamName)
+        .option("endpointUrl", localTestUtils.endpointUrl)
+        .option("AWSAccessKeyId", KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId)
+        .option("AWSSecretKey", KinesisTestUtils.getAWSCredentials().getAWSSecretKey)
+        .option("startingposition", "earliest")
+
+      val kinesis = reader.load().selectExpr("CAST(data AS STRING)").as[ String ]
+      val result = kinesis.map(_.toInt)
+      val testData = 1 to 5
+      testStream(result)(
+        StartStream(ProcessingTime(100), clock),
+        waitUntilBatchProcessed, AssertOnQuery {
+          query =>
+        localTestUtils.pushData(testData.map(_.toString).toArray, aggregateTestData)
+        true
+        },
+        AdvanceManualClock(100), waitUntilBatchProcessed, CheckAnswer(0, 1, 2, 3, 4, 5))
+    } finally {
+      localTestUtils.deleteStream()
+    }
   }
 
   testIfEnabled("Test From TRIM_HORIZON position") {
@@ -296,7 +380,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
         .option("AWSAccessKeyId", KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId)
         .option("AWSSecretKey", KinesisTestUtils.getAWSCredentials().getAWSSecretKey)
         .option("startingposition", "LATEST")
-        .option("describeShardInterval", "0")
+        .option("kinesis.client.describeShardInterval", "0")
 
       val kinesis = reader.load()
         .selectExpr("CAST(data AS STRING)")
@@ -487,7 +571,7 @@ abstract class KinesisStressSourceSuite(aggregateTestData: Boolean) extends Kine
         .option("endpointUrl", localTestUtils.endpointUrl)
         .option("AWSAccessKeyId", KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId)
         .option("AWSSecretKey", KinesisTestUtils.getAWSCredentials().getAWSSecretKey)
-        .option("describeShardInterval", "0")
+        .option("kinesis.client.describeShardInterval", "0")
 
       val kinesis = reader.load()
         .selectExpr("CAST(data AS STRING)")

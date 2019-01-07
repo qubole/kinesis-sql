@@ -19,18 +19,18 @@ package org.apache.spark.sql.kinesis
 
 import java.math.BigInteger
 import java.util
-import java.util.ArrayList
+import java.util.{ArrayList, Locale}
 import java.util.concurrent.{Executors, ThreadFactory}
 
 import com.amazonaws.AbortedException
 import com.amazonaws.services.kinesis.AmazonKinesisClient
 import com.amazonaws.services.kinesis.clientlibrary.types.UserRecord
 import com.amazonaws.services.kinesis.model.{DescribeStreamRequest, GetRecordsRequest, Shard, _}
+
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types._
 import org.apache.spark.util.{ThreadUtils, UninterruptibleThread}
@@ -63,10 +63,10 @@ private[kinesis] case class KinesisReader(
   val execContext = ExecutionContext.fromExecutorService(kinesisReaderThread)
 
   private val maxOffsetFetchAttempts =
-    readerOptions.getOrElse("client.numRetries", "3").toInt
+    readerOptions.getOrElse("client.numRetries".toLowerCase(Locale.ROOT), "3").toInt
 
   private val offsetFetchAttemptIntervalMs =
-    readerOptions.getOrElse("client.retryIntervalMs", "1000").toLong
+    readerOptions.getOrElse("client.retryIntervalMs".toLowerCase(Locale.ROOT), "1000").toLong
 
   private val maxSupportedShardsPerStream = 100
 

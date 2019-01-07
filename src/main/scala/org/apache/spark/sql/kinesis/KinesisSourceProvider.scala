@@ -201,6 +201,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val AWS_STS_ROLE_ARN = "awsstsrolearn"
   private[kinesis] val AWS_STS_SESSION_NAME = "awsstssessionname"
   private[kinesis] val STARTING_POSITION_KEY = "startingposition"
+  private[kinesis] val DESCRIBE_SHARD_INTERVAL = "client.describeshardinterval"
 
   // Sink Options
   private[kinesis] val SINK_STREAM_NAME_KEY = "streamname"
@@ -218,6 +219,8 @@ private[kinesis] object KinesisSourceProvider extends Logging {
       case Some(position) if position.toLowerCase(Locale.ROOT) == "latest" =>
         new AtTimeStamp(CURRENT_TIMESTAMP)
       case Some(position) if position.toLowerCase(Locale.ROOT) == "trim_horizon" =>
+        new TrimHorizon
+      case Some(position) if position.toLowerCase(Locale.ROOT) == "earliest" =>
         new TrimHorizon
       case None => new AtTimeStamp(CURRENT_TIMESTAMP)
     }
