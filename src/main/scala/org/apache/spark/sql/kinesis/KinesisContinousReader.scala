@@ -17,6 +17,7 @@
 
 package org.apache.spark.sql.kinesis
 
+import java.util.Locale
 import java.{util => ju}
 
 import com.amazonaws.services.kinesis.model.{GetRecordsResult, Record, Shard}
@@ -58,7 +59,8 @@ class KinesisContinuousReader(
   private var latestDescribeShardTimestamp: Long = -1L
 
   private val describeShardInterval: Long = {
-    Utils.timeStringAsMs(sourceOptions.getOrElse("describeShardInterval", "1s"))
+    Utils.timeStringAsMs(sourceOptions.getOrElse(KinesisSourceProvider.DESCRIBE_SHARD_INTERVAL,
+      "1s"))
   }
 
   val kinesisReader = new KinesisReader(
@@ -274,10 +276,10 @@ class KinesisContinuousInputPartitionReader(
   val converter = new KinesisRecordToUnsafeRowConverter
 
   val recordPerRequest =
-    sourceOptions.getOrElse("executor.maxRecordPerRead", "100").toInt
+    sourceOptions.getOrElse("executor.maxRecordPerRead".toLowerCase(Locale.ROOT), "100").toInt
 
   private val recordFetchAttemptIntervalMs =
-    sourceOptions.getOrElse("executor.client.retryIntervalMs", "10").toLong
+    sourceOptions.getOrElse("executor.client.retryIntervalMs".toLowerCase(Locale.ROOT), "10").toLong
 
   val kinesisReader = new KinesisReader(
     sourceOptions,
