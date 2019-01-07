@@ -13,6 +13,15 @@ Checkout kinesis-sql branch depending upon your Spark version. Use Master branch
 
 This will create *target/spark-sql-kinesis_2.11-2.2.0.jar* file which contains the connector code and its dependency jars.
 
+###### Spark version 2.3.2
+	git clone git@github.com:qubole/kinesis-sql.git
+	git checkout 2.3.2
+	cd kinesis-sql
+	mvn install -DskipTests
+
+This will create *target/spark-sql-kinesis_2.11-2.3.2.jar* file which contains the connector code and its dependency jars.
+
+
 ## How to use it
 
 #### Setup Kinesis
@@ -32,7 +41,7 @@ Refer [Amazon Docs](https://docs.aws.amazon.com/cli/latest/reference/kinesis/cre
 
 #### Example Streaming Job
 
-Refering $SPARK_HOME to the Spark installation directory. This library has been developed and tested against **SPARK 2.2.x**. 
+Refering $SPARK_HOME to the Spark installation directory.
 
 ###### Open Spark-Shell
 
@@ -110,11 +119,11 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 | endpointUrl     |   https://kinesis.us-east-1.amazonaws.com    |   end-point URL for Kinesis Stream|
 | awsAccessKeyId |    -     |    AWS Credentials for  Kinesis describe, read record operations|   
 | awsSecretKey |      -  |    AWS Credentials for  Kinesis describe, read record |
-| startingPosition |      LATEST |    Starting Position in Kinesis to fetch data from. Possible values are "LATEST" & "TRIM_HORIZON" |
-| describeShardInterval |      1s (1 second) |  Minimum Interval between two DescribeStream API calls to consider resharding  |
+| startingPosition |      LATEST |    Starting Position in Kinesis to fetch data from. Possible values are "latest", "trim_horizon", "earliest" (alias for trim_horizon)   |
 | kinesis.executor.maxFetchTimeInMs |     1000 |  Maximum time spent in executor to fetch record from Kinesis per Shard |
 | kinesis.executor.maxFetchRecordsPerShard |     100000 |  Maximum Number of records to fetch per shard  |
 | kinesis.executor.maxRecordPerRead |     10000 |  Maximum Number of records to fetch per getRecords API call  |
+| kinesis.client.describeShardInterval |      1s (1 second) |  Minimum Interval between two DescribeStream API calls to consider resharding  |
 | kinesis.client.numRetries |     3 |  Maximum Number of retries for Kinesis API requests  |
 | kinesis.client.retryIntervalMs |     1000 |  Cool-off period before retrying Kinesis API  |
 
@@ -130,7 +139,8 @@ Refering $SPARK_HOME to the Spark installation directory. This library has been 
 | kinesis.executor.aggregationEnabled | true | Specify if records should be aggregated before sending them to Kinesis | 
 
 ## Roadmap
-*  We need to migrate to DataSource V2 APIs introduced in Spark 2.3.0 once it is stable
+*  We need to migrate to DataSource V2 APIs for MicroBatchExecution.
+*  Maintain Per Micro-Batch Shard Commit state in Dynamo DB
 
 ## Acknowledgement
 
