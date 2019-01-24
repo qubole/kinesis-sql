@@ -17,8 +17,8 @@
 
 package org.apache.spark.sql.kinesis
 
-import java.util.Locale
 import java.{util => ju}
+import java.util.Locale
 import java.util.concurrent.TimeoutException
 
 import com.amazonaws.services.kinesis.model.{GetRecordsResult, Record, Shard}
