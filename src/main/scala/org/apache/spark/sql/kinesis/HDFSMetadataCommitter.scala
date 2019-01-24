@@ -192,7 +192,8 @@ class HDFSMetadataCommitter[T <: AnyRef : ClassTag](path: String,
     try {
       fileContext.delete(path, true)
     } catch {
-      case e: FileNotFoundException => // ignore if file has already been deleted
+      case e: FileNotFoundException =>
+      // ignore if file has already been deleted
     }
   }
 
@@ -201,7 +202,7 @@ class HDFSMetadataCommitter[T <: AnyRef : ClassTag](path: String,
    */
   override def purge(thresholdBatchId: Long): Unit = {
     val batchIds = fileContext.util().listStatus(metadataPath, batchFilesFilter)
-        .map(f => pathToBatchId(f.getPath))
+      .map(f => pathToBatchId(f.getPath))
 
     for (batchId <- batchIds if batchId < thresholdBatchId) {
       val path = batchIdToPath(batchId)
