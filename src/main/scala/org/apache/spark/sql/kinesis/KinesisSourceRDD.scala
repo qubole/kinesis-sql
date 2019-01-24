@@ -233,7 +233,7 @@ private[kinesis] class KinesisSourceRDD(
     }
 
       // Release reader, either by removing it or indicating we're no longer using it
-    context.addTaskCompletionListener { taskContext: TaskContext =>
+    context.addTaskCompletionListener [Unit]{ taskContext: TaskContext =>
       logInfo("Task Completed")
       updateMetadata(taskContext)
     }

@@ -112,7 +112,7 @@ class KinesisSourceOptionsSuite extends StreamTest with SharedSQLContext {
       newOptions.foreach {
         case (k, v) =>
           val keytoCheck = k.toLowerCase(Locale.ROOT).drop(8).toString
-          assert(kinesisSourceOptions.getOrElse(keytoCheck, "None").toString == v.toString)
+          assert(kinesisSourceOptions.getOrElse(keytoCheck, "None").toString.equals(v.toString))
       }
     }
 
