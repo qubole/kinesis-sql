@@ -183,64 +183,62 @@ class HDFSMetadataCommitter[T <: AnyRef : ClassTag](path: String,
       }
     }
 
-    def delete(batchId: Long): Unit = {
-      val batchMetadataDir = batchIdToPath(batchId)
-      delete(batchMetadataDir)
-    }
+  def delete(batchId: Long): Unit = {
+    val batchMetadataDir = batchIdToPath(batchId)
+    delete(batchMetadataDir)
+  }
 
-    def delete(path: Path): Unit = {
-      try {
-        fileContext.delete(path, true)
-      } catch {
-        case e: FileNotFoundException => // ignore if file has already been deleted
-      }
+  def delete(path: Path): Unit = {
+    try {
+      fileContext.delete(path, true)
+    } catch {
+      case e: FileNotFoundException => // ignore if file has already been deleted
     }
+  }
 
-    /*
+  /*
    * Removes all the log entry earlier than thresholdBatchId (exclusive).
-   */ override def purge(thresholdBatchId: Long): Unit
-
-    =
-    {
-      val batchIds = fileContext.util().listStatus(metadataPath, batchFilesFilter)
+   */
+  override def purge(thresholdBatchId: Long): Unit = {
+    val batchIds = fileContext.util().listStatus(metadataPath, batchFilesFilter)
         .map(f => pathToBatchId(f.getPath))
 
-      for (batchId <- batchIds if batchId < thresholdBatchId) {
-        val path = batchIdToPath(batchId)
-        delete(path)
-        logTrace(s"Removed metadata log file: $path")
-      }
+    for (batchId <- batchIds if batchId < thresholdBatchId) {
+      val path = batchIdToPath(batchId)
+      delete(path)
+      logTrace(s"Removed metadata log file: $path")
     }
+  }
 
-    /** Helper method to retry with exponential backoff  */
-    def withRetry[ T ](message: String, ignoreException: Boolean = true)(body: => T): T = {
-      var retryCount = 0
-      var result: Option[ T ] = None
-      var waitTimeInterval = retryIntervalMs
-      var lastError: Throwable = null
+  /** Helper method to retry with exponential backoff  */
+  def withRetry[ T ](message: String, ignoreException: Boolean = true)(body: => T): T = {
+    var retryCount = 0
+    var result: Option[ T ] = None
+    var waitTimeInterval = retryIntervalMs
+    var lastError: Throwable = null
 
-      def isMaxRetryDone = retryCount >= numRetries
+    def isMaxRetryDone = retryCount >= numRetries
 
-      while (result.isEmpty && !isMaxRetryDone) {
-        if ( retryCount > 0 ) { // wait only if this is a retry
-          Thread.sleep(waitTimeInterval)
-          waitTimeInterval = scala.math.min(waitTimeInterval * 2, maxRetryIntervalMs)
-        }
-        try {
-          result = Some(body)
-        } catch {
-          case NonFatal(t) => lastError = t
-            if ( ignoreException ) {
-              logWarning(s"Error while $message [attempt = ${retryCount + 1}]", t)
-            } else {
-              throw new IllegalStateException(s"Error while $message", t)
-            }
-        }
-        retryCount += 1
+    while (result.isEmpty && !isMaxRetryDone) {
+      if ( retryCount > 0 ) { // wait only if this is a retry
+        Thread.sleep(waitTimeInterval)
+        waitTimeInterval = scala.math.min(waitTimeInterval * 2, maxRetryIntervalMs)
       }
-      result.getOrElse {
-        throw new IllegalStateException(s"Gave up after $retryCount retries while $message," +
+      try {
+        result = Some(body)
+      } catch {
+        case NonFatal(t) => lastError = t
+          if ( ignoreException ) {
+            logWarning(s"Error while $message [attempt = ${retryCount + 1}]", t)
+          } else {
+            throw new IllegalStateException(s"Error while $message", t)
+          }
+      }
+      retryCount += 1
+    }
+    result.getOrElse {
+      throw new IllegalStateException(s"Gave up after $retryCount retries while $message," +
           s" last exception: ", lastError)
-      }
     }
+  }
 }
