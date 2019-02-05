@@ -86,7 +86,8 @@ private[kinesis] class KinesisSource(
   private def metadataCommitter: MetadataCommitter[ShardInfo] = {
     metaDataCommitterType.toLowerCase(Locale.ROOT) match {
       case "hdfs" =>
-        new HDFSMetadataCommitter[ ShardInfo ](metaDataCommitterPath, hadoopConf(sqlContext))
+        new HDFSMetadataCommitter[ ShardInfo ](metaDataCommitterPath,
+          hadoopConf(sqlContext), sourceOptions)
       case _ => throw new IllegalArgumentException("only HDFS is supported")
     }
   }
