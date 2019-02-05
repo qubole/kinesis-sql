@@ -187,7 +187,8 @@ private[kinesis] class KinesisSourceRDD(
 
     lazy val metadataCommitter: MetadataCommitter[ShardInfo] = {
       metaDataCommitterType.toLowerCase(Locale.ROOT) match {
-        case "hdfs" => new HDFSMetadataCommitter[ ShardInfo ](metaDataCommitterPath, conf)
+        case "hdfs" => new HDFSMetadataCommitter[ ShardInfo ](
+          metaDataCommitterPath, conf, sourceOptions)
         case _ => throw new IllegalArgumentException("only HDFS is supported")
       }
     }

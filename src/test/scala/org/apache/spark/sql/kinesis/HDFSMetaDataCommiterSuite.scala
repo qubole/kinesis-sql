@@ -65,8 +65,8 @@ class HDFSMetaDataCommiterSuite extends SparkFunSuite with SharedSQLContext {
       assert(metadataCommitter.get(2).nonEmpty)
 
       metadataCommitter.purge(2)
-      assert(metadataCommitter.get(0) == null)
-      assert(metadataCommitter.get(1) == null)
+      assertThrows[IllegalStateException](metadataCommitter.get(0))
+      assertThrows[IllegalStateException](metadataCommitter.get(1))
       assert(metadataCommitter.get(2).nonEmpty)
 
       // There should be exactly one file, called "2", in the metadata directory.
