@@ -19,6 +19,7 @@ package org.apache.spark.sql.kinesis
 
 import java.util.Locale
 import java.{util => ju}
+import java.util.Locale
 
 import com.amazonaws.services.kinesis.model.{GetRecordsResult, Record, Shard}
 import scala.util.control.NonFatal
