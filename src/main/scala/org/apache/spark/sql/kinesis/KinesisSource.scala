@@ -22,7 +22,6 @@ import java.util.Locale
 
 import com.amazonaws.services.kinesis.model.Record
 import org.apache.hadoop.conf.Configuration
-
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql._
@@ -31,7 +30,9 @@ import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.execution.streaming.{Offset, Source, _}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import org.apache.spark.util.{SerializableConfiguration, Utils}
+import org.apache.spark.util.{SerializableConfiguration, ThreadUtils, Utils}
+
+import scala.collection.parallel.ForkJoinTaskSupport
 
 
  /*
@@ -100,9 +101,48 @@ private[kinesis] class KinesisSource(
     sourceOptions.getOrElse("executor.metadata.path", metadataPath).toString
   }
 
+  private val avoidTimeStampAsOffset =
+    sourceOptions.getOrElse("client.avoidTimeStampAsOffset"
+      .toLowerCase(Locale.ROOT), "false").toBoolean
+
+  private val avoidEmptyBatches =
+    sourceOptions.getOrElse("client.avoidEmptyBatches".
+      toLowerCase(Locale.ROOT), "false").toBoolean
+
   def options: Map[String, String] = {
     // This function is used for testing
     sourceOptions
+  }
+
+  /** Makes an API call to get one record for a shard. Return true if the call is successful  */
+  def hasNewData(shardInfo: ShardInfo): Boolean = {
+    val shardIterator = kinesisReader.getShardIterator(
+      shardInfo.shardId,
+      shardInfo.iteratorType,
+      shardInfo.iteratorPosition)
+    val records = kinesisReader.getKinesisRecords(shardIterator, 1)
+    // Return true if we can get back a record. Or if we have not reached the end of the stream
+    (records.getRecords.size() > 0 || records.getMillisBehindLatest.longValue() > 0)
+  }
+
+  def canCreateNewBatch(shardsInfo: Array[ShardInfo]): Boolean = {
+    var shardsInfoToCheck = shardsInfo.par
+    val threadPoolSize = Math.min(6, shardsInfoToCheck.size)
+    val evalPool = ThreadUtils.newForkJoinPool("DeleteFiles", threadPoolSize)
+    shardsInfoToCheck.tasksupport = new ForkJoinTaskSupport(evalPool)
+    var hasRecords = false
+    try {
+      val status = shardsInfoToCheck.foreach { s =>
+        if (!hasRecords && hasNewData(s)) {
+          synchronized(hasRecords) {
+            hasRecords = true
+          }
+        }
+      }
+    } finally {
+      evalPool.shutdown()
+    }
+    hasRecords
   }
 
   /** Returns the shards position to start reading data from */
@@ -110,28 +150,31 @@ private[kinesis] class KinesisSource(
     val defaultOffset = new ShardOffsets(-1L, streamName)
     val prevBatchId = currentShardOffsets.getOrElse(defaultOffset).batchId
     val prevShardsInfo = prevBatchShardInfo(prevBatchId)
+    var latestShardInfo: Array[ShardInfo] = Array.empty[ShardInfo]
 
-    val latestShardInfo: Array[ShardInfo] = {
-      if (latestDescribeShardTimestamp == -1 ||
+    if (latestDescribeShardTimestamp == -1 ||
         ((latestDescribeShardTimestamp + describeShardInterval) < System.currentTimeMillis())) {
-        val latestShards = kinesisReader.getShards()
-        if (latestShards.nonEmpty) {
-          latestDescribeShardTimestamp = System.currentTimeMillis()
-          ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo, initialPosition)
-        } else {
-          Seq.empty[ShardInfo]
+      val latestShards = kinesisReader.getShards()
+      latestDescribeShardTimestamp = System.currentTimeMillis()
+      if (latestShards.nonEmpty) {
+        var s = ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo, initialPosition)
+        if (avoidEmptyBatches) {
+          if (!ShardSyncer.hasNewShards(prevShardsInfo, s)
+            && !canCreateNewBatch(s.toArray)) {
+            s = Seq.empty[ShardInfo]
+          }
         }
+        latestShardInfo = s.toArray
       }
-      else {
-        prevShardsInfo
-      }
-    }.toArray
+    }
 
     // update currentShardOffsets only when latestShardInfo is not empty
     // else use last batch's ShardOffsets.
     // Since there wont be any change in offset, no new batch will be triggered
     if (latestShardInfo.nonEmpty) {
       currentShardOffsets = Some(new ShardOffsets(prevBatchId + 1, streamName, latestShardInfo))
+    } else {
+      currentShardOffsets = Some(new ShardOffsets(prevBatchId, streamName, prevShardsInfo.toArray))
     }
 
     currentShardOffsets match {
