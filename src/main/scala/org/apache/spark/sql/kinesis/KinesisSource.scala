@@ -19,9 +19,12 @@ package org.apache.spark.sql.kinesis
 
 import java.io._
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.amazonaws.services.kinesis.model.Record
 import org.apache.hadoop.conf.Configuration
+
+import scala.collection.parallel.ForkJoinTaskSupport
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql._
@@ -31,9 +34,6 @@ import org.apache.spark.sql.execution.streaming.{Offset, Source, _}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.{SerializableConfiguration, ThreadUtils, Utils}
-
-import scala.collection.parallel.ForkJoinTaskSupport
-
 
  /*
   * A [[Source]] that reads data from Kinesis using the following design.
@@ -101,13 +101,13 @@ private[kinesis] class KinesisSource(
     sourceOptions.getOrElse("executor.metadata.path", metadataPath).toString
   }
 
-  private val avoidTimeStampAsOffset =
-    sourceOptions.getOrElse("client.avoidTimeStampAsOffset"
-      .toLowerCase(Locale.ROOT), "false").toBoolean
-
   private val avoidEmptyBatches =
     sourceOptions.getOrElse("client.avoidEmptyBatches".
       toLowerCase(Locale.ROOT), "false").toBoolean
+
+  private val maxParallelThreads =
+    sourceOptions.getOrElse("client.maxParallelThreads".
+      toLowerCase(Locale.ROOT), "8").toInt
 
   def options: Map[String, String] = {
     // This function is used for testing
@@ -127,22 +127,27 @@ private[kinesis] class KinesisSource(
 
   def canCreateNewBatch(shardsInfo: Array[ShardInfo]): Boolean = {
     var shardsInfoToCheck = shardsInfo.par
-    val threadPoolSize = Math.min(6, shardsInfoToCheck.size)
+    val threadPoolSize = Math.min(maxParallelThreads, shardsInfoToCheck.size)
     val evalPool = ThreadUtils.newForkJoinPool("DeleteFiles", threadPoolSize)
     shardsInfoToCheck.tasksupport = new ForkJoinTaskSupport(evalPool)
-    var hasRecords = false
+    val hasRecords = new AtomicBoolean(false)
     try {
-      val status = shardsInfoToCheck.foreach { s =>
-        if (!hasRecords && hasNewData(s)) {
-          synchronized(hasRecords) {
-            hasRecords = true
-          }
+      shardsInfoToCheck.foreach { s =>
+        if (!hasRecords.get() && hasNewData(s)) {
+          hasRecords.set(true)
         }
       }
     } finally {
       evalPool.shutdown()
     }
-    hasRecords
+    logDebug(s"Can create new batch = ${hasRecords.get()}")
+    hasRecords.get()
+  }
+
+  def hasShardEndAsOffset(shardInfo: Seq[ShardInfo]): Boolean = {
+    shardInfo.exists {
+      s: (ShardInfo) => (s.iteratorType.contains(new ShardEnd().iteratorType))
+    }
   }
 
   /** Returns the shards position to start reading data from */
@@ -157,14 +162,16 @@ private[kinesis] class KinesisSource(
       val latestShards = kinesisReader.getShards()
       latestDescribeShardTimestamp = System.currentTimeMillis()
       if (latestShards.nonEmpty) {
-        var s = ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo, initialPosition)
+        var newShardInfo = ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo,
+          initialPosition)
         if (avoidEmptyBatches) {
-          if (!ShardSyncer.hasNewShards(prevShardsInfo, s)
-            && !canCreateNewBatch(s.toArray)) {
-            s = Seq.empty[ShardInfo]
+          if (!hasShardEndAsOffset(newShardInfo)
+            && !ShardSyncer.hasNewShards(prevShardsInfo, newShardInfo)
+            && !canCreateNewBatch(newShardInfo.toArray)) {
+            newShardInfo = Seq.empty[ShardInfo]
           }
         }
-        latestShardInfo = s.toArray
+        latestShardInfo = newShardInfo.toArray
       }
     }
 

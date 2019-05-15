@@ -111,8 +111,9 @@ private[kinesis] class KinesisSourceRDD(
     val recordPerRequest =
       sourceOptions.getOrElse("executor.maxRecordPerRead".toLowerCase(Locale.ROOT), "10000").toInt
 
-    val useTimeStamp =
-      sourceOptions.getOrElse("executor.useTimeStamp".toLowerCase(Locale.ROOT), "false").toBoolean
+    val avoidTimeStampAsOffset =
+    sourceOptions.getOrElse("client.avoidTimeStampAsOffset"
+      .toLowerCase(Locale.ROOT), "false").toBoolean
 
     val startTimestamp: Long = System.currentTimeMillis
     var lastReadSequenceNumber: String = ""
@@ -138,7 +139,7 @@ private[kinesis] class KinesisSourceRDD(
       }
 
       def canFetchMoreRecords(currentTimestamp: Long): Boolean = {
-        if (!useTimeStamp && lastReadSequenceNumber.isEmpty) {
+        if (avoidTimeStampAsOffset && lastReadSequenceNumber.isEmpty) {
           // if we are not using timestamp as offset we should make sure that
           //    a) we reach the tip of the stream if we have not able to
           //    b) we read atleast one records
@@ -234,7 +235,7 @@ private[kinesis] class KinesisSourceRDD(
             new AfterSequenceNumber(lastReadSequenceNumber))
         }
         else {
-          if (useTimeStamp && lastSeenTimeStamp > 0) {
+          if (!avoidTimeStampAsOffset && lastSeenTimeStamp > 0) {
             new ShardInfo(
               sourcePartition.shardInfo.shardId,
               new AtTimeStamp(lastSeenTimeStamp))
