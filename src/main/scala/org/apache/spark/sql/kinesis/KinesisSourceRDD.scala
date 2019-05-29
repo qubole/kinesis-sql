@@ -114,7 +114,6 @@ private[kinesis] class KinesisSourceRDD(
     val startTimestamp: Long = System.currentTimeMillis
     var lastReadSequenceNumber: String = ""
     var numRecordRead: Long = 0
-    var lastSeenTimeStamp: Long = -1
     var hasShardClosed = false
 
     val underlying = new NextIterator[Record]() {
@@ -134,23 +133,35 @@ private[kinesis] class KinesisSourceRDD(
         _shardIterator
       }
 
+      def canFetchMoreRecords(currentTimestamp: Long): Boolean = {
+        if (lastReadSequenceNumber.isEmpty) {
+          // We are not using timestamp as offset. So we have to make sure that
+          //    a) we reach the tip of the stream if we have not able to
+          //    b) we read at-least one records
+          // so that we are never stuck in the loop where we have data near the tip of the stream
+          // but we are not spending enough time to read it
+          true
+        } else {
+          // honour the maxFetchTime provided in the options.
+          currentTimestamp - startTimestamp < maxFetchTimeInMs
+        }
+      }
+
       override def getNext(): Record = {
         if (fetchedRecords.length == 0 || currentIndex >= fetchedRecords.length) {
           fetchedRecords = Array.empty
           currentIndex = 0
           while (fetchedRecords.length == 0 && fetchNext == true)  {
             val currentTimestamp: Long = System.currentTimeMillis
-            if (currentTimestamp - startTimestamp < maxFetchTimeInMs) {
+            if (canFetchMoreRecords(currentTimestamp)) {
               val shardInterator = getShardIterator()
               val records: GetRecordsResult = kinesisReader.getKinesisRecords(getShardIterator,
                 recordPerRequest)
               // de-aggregate records
                val deaggregateRecords = kinesisReader.deaggregateRecords(records.getRecords, null)
                fetchedRecords = deaggregateRecords.asScala.toArray
-               // fetchedRecords = records.getRecords.asScala.toArray
               _shardIterator = records.getNextShardIterator
               logDebug(s"Milli secs behind is ${records.getMillisBehindLatest.longValue()}")
-              lastSeenTimeStamp = currentTimestamp - records.getMillisBehindLatest.longValue()
               if ( _shardIterator == null ) {
                 hasShardClosed = true
                 fetchNext = false
@@ -201,11 +212,10 @@ private[kinesis] class KinesisSourceRDD(
       sourceOptions.getOrElse("executor.metadata.path", metadataPath).toString
     }
 
-
+    
     def updateMetadata(taskContext: TaskContext): Unit = {
 
       // if lastReadSequenceNumber exists, use AfterSequenceNumber for next Iterator
-      // else if lastSeenTimeStamp exists, use AtTimeStamp for next Iterator
       // else use the same iterator information which was given to the RDD
 
       val shardInfo: ShardInfo =
@@ -219,14 +229,8 @@ private[kinesis] class KinesisSourceRDD(
             new AfterSequenceNumber(lastReadSequenceNumber))
         }
         else {
-          if (lastSeenTimeStamp > 0) {
-            new ShardInfo(
-              sourcePartition.shardInfo.shardId,
-              new AtTimeStamp(lastSeenTimeStamp))
-          } else {
-            logWarning("Neither LastSequenceNumber nor LastTimeStamp was recorded.")
+            logInfo("No Records were processed in this batch")
             sourcePartition.shardInfo
-          }
         }
       logInfo(s"Batch $batchId : Committing End Shard position for $kinesisShardId")
       metadataCommitter.add(batchId, kinesisShardId, shardInfo)
