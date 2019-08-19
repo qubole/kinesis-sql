@@ -77,6 +77,16 @@
       <version>0.12.8</version>
     </dependency>
     <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>2.6.1</version>
+      <!--
+         We are being explicit about version here and overriding the
+         spark default of 2.5.0 because KCL appears to have introduced
+         a dependency on protobuf 2.6.1 somewhere between KCL 1.4.0 and 1.6.1.
+       -->
+    </dependency>
+    <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-cbor</artifactId>
       <version>${fasterxml.jackson.version}</version>
@@ -148,6 +158,7 @@
                   <include>com.amazonaws:aws-java-sdk-core:*</include>
                   <include>com.amazonaws:aws-java-sdk-sts:*</include>
                   <include>com.fasterxml.jackson.dataformat:*:*</include>
+                  <include>com.google.protobuf:*:*</include>
                 </includes>
                 </artifactSet>
                 <relocations>
@@ -163,6 +174,13 @@
                       <shadedPattern>org.apache.spark.sql.kinesis.shaded.amazonaws</shadedPattern>
                       <includes>
                         <include>com.amazonaws.**</include>
+                      </includes>
+                    </relocation>
+                    <relocation>
+                      <pattern>com.google.protobuf</pattern>
+                      <shadedPattern>org.apache.spark.sql.kinesis.shaded.google.protobuf</shadedPattern>
+                      <includes>
+                        <include>com.google.protobuf.**</include>
                       </includes>
                     </relocation>
                 </relocations>
