@@ -163,6 +163,23 @@ private[kinesis] object ShardSyncer extends Logging {
     }
   }
 
+  def hasNewShards(latestShardsInfo: Seq[ShardInfo],
+                   prevShardsInfo: Seq[ShardInfo]): Boolean = {
+    val prevShardsList = new mutable.HashSet[String]
+    prevShardsInfo.foreach {
+      s: ShardInfo => prevShardsList.add(s.shardId)
+    }
+    latestShardsInfo.foldLeft(false) {
+      (hasNewShard, shardInfo) =>
+        if (!hasNewShard) {
+          // Check only if hasNewShard is false
+          prevShardsInfo.contains(shardInfo.shardId)
+        } else {
+          hasNewShard
+        }
+    }
+  }
+
   def getLatestShardInfo(
       latestShards: Seq[Shard],
       prevShardsInfo: Seq[ShardInfo],
