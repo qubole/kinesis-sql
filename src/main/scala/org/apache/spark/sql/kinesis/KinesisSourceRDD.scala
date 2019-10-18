@@ -212,7 +212,7 @@ private[kinesis] class KinesisSourceRDD(
       sourceOptions.getOrElse("executor.metadata.path", metadataPath).toString
     }
 
-    
+
     def updateMetadata(taskContext: TaskContext): Unit = {
 
       // if lastReadSequenceNumber exists, use AfterSequenceNumber for next Iterator
