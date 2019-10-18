@@ -17,47 +17,79 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.apache.spark</groupId>
-    <artifactId>spark-parent_2.11</artifactId>
-    <version>2.4.0</version>
-    <relativePath>../../pom.xml</relativePath>
-  </parent>
 
-  <!-- TODO check if we  have to worry about ASL license in new code -->
+  <groupId>com.qubole.spark</groupId>
   <artifactId>spark-sql-kinesis_2.11</artifactId>
+  <version>1.0.0-spark_2.4-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Kinesis Integration for Structured Streaming</name>
 
+  <developers>
+    <developer>
+      <id>qubole</id>
+      <organization>Qubole Inc.</organization>
+      <organizationUrl>http://www.qubole.com</organizationUrl>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
+  </developers>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://github.com/qubole/kinesis-sql/blob/master/LICENSE.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:git://github.com/qubole/kinesis-sql.git</connection>
+    <url>http://github.com/qubole/kinesis-sql</url>
+    <developerConnection>scm:git:git@github.com:qubole/kinesis-sql.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+
+  <inceptionYear>2018</inceptionYear>
+  <organization>
+    <name>Qubole</name>
+    <url>http://www.qubole.com/</url>
+  </organization>
+
   <properties>
     <sbt.project.name>sql-kinesis</sbt.project.name>
+    <spark.version>2.4.0</spark.version>
+    <scala.binary.version>2.11</scala.binary.version>
+    <fasterxml.jackson.version>2.6.7</fasterxml.jackson.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_${scala.binary.version}</artifactId>
-      <version>${project.version}</version>
+      <version>${spark.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_${scala.binary.version}</artifactId>
-      <version>${project.version}</version>
+      <version>${spark.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-catalyst_${scala.binary.version}</artifactId>
-      <version>${project.version}</version>
+      <version>${spark.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_${scala.binary.version}</artifactId>
-      <version>${project.version}</version>
+      <version>${spark.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
@@ -94,16 +126,25 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
+      <version>1.10.19</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.scalacheck</groupId>
       <artifactId>scalacheck_${scala.binary.version}</artifactId>
+      <version>1.13.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_2.11</artifactId>
+      <version>3.0.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-tags_${scala.binary.version}</artifactId>
+      <version>${spark.version}</version>
     </dependency>
 
     <!--
@@ -115,28 +156,65 @@
       <artifactId>spark-tags_${scala.binary.version}</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
+      <version>${spark.version}</version>
     </dependency>
-
   </dependencies>
+
   <build>
     <pluginManagement>
       <plugins>
         <plugin>
-           <groupId>org.scalastyle</groupId>
-             <artifactId>scalastyle-maven-plugin</artifactId>
-             <version>2.17</version>
-             <configuration>
-               <verbose>false</verbose>
-               <failOnViolation>false</failOnViolation>
-               <includeTestSourceDirectory>false</includeTestSourceDirectory>
-               <failOnWarning>false</failOnWarning>
-               <sourceDirectory>${basedir}/src/main/scala</sourceDirectory>
-               <testSourceDirectory>${basedir}/src/test/scala</testSourceDirectory>
-               <configLocation>../../scalastyle-config.xml</configLocation>
-               <outputFile>${basedir}/target/scalastyle-output.xml</outputFile>
-               <inputEncoding>${project.build.sourceEncoding}</inputEncoding>
-               <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
-             </configuration>
+          <groupId>org.scalatest</groupId>
+          <artifactId>scalatest-maven-plugin</artifactId>
+          <version>1.0</version>
+          <executions>
+            <execution>
+              <id>test</id>
+              <goals>
+                <goal>test</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>net.alchim31.maven</groupId>
+          <artifactId>scala-maven-plugin</artifactId>
+          <version>4.0.2</version>
+          <executions>
+            <execution>
+              <id>compile</id>
+              <goals>
+                <goal>compile</goal>
+              </goals>
+              <phase>compile</phase>
+            </execution>
+            <execution>
+              <id>test-compile</id>
+              <goals>
+                <goal>testCompile</goal>
+              </goals>
+              <phase>test-compile</phase>
+            </execution>
+            <execution>
+              <phase>process-resources</phase>
+              <goals>
+                <goal>compile</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.7.0</version>
+          <executions>
+            <execution>
+              <phase>compile</phase>
+              <goals>
+                <goal>compile</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -150,39 +228,39 @@
               </goals>
               <configuration>
                 <artifactSet>
-                <includes>
-                  <include>com.amazonaws:amazon-kinesis-client:*</include>
-                  <include>com.amazonaws:amazon-kinesis-producer:*</include>
-                  <include>com.amazonaws:aws-java-sdk-kinesis:*</include>
-                  <include>com.amazonaws:aws-java-sdk-dynamodb:*</include>
-                  <include>com.amazonaws:aws-java-sdk-core:*</include>
-                  <include>com.amazonaws:aws-java-sdk-sts:*</include>
-                  <include>com.fasterxml.jackson.dataformat:*:*</include>
-                  <include>com.google.protobuf:*:*</include>
-                </includes>
+                  <includes>
+                    <include>com.amazonaws:amazon-kinesis-client:*</include>
+                    <include>com.amazonaws:amazon-kinesis-producer:*</include>
+                    <include>com.amazonaws:aws-java-sdk-kinesis:*</include>
+                    <include>com.amazonaws:aws-java-sdk-dynamodb:*</include>
+                    <include>com.amazonaws:aws-java-sdk-core:*</include>
+                    <include>com.amazonaws:aws-java-sdk-sts:*</include>
+                    <include>com.fasterxml.jackson.dataformat:*:*</include>
+                    <include>com.google.protobuf:*:*</include>
+                  </includes>
                 </artifactSet>
                 <relocations>
-                    <relocation>
+                  <relocation>
                     <pattern>com.fasterxml.jackson.dataformat</pattern>
                     <shadedPattern>org.apache.spark.sql.kinesis.shaded.fasterxml.jackson.dataformat</shadedPattern>
-                      <includes>
-                        <include>com.fasterxml.jackson.dataformat.**</include>
-                      </includes>
-                    </relocation>
-                    <relocation>
-                      <pattern>com.amazonaws</pattern>
-                      <shadedPattern>org.apache.spark.sql.kinesis.shaded.amazonaws</shadedPattern>
-                      <includes>
-                        <include>com.amazonaws.**</include>
-                      </includes>
-                    </relocation>
-                    <relocation>
-                      <pattern>com.google.protobuf</pattern>
-                      <shadedPattern>org.apache.spark.sql.kinesis.shaded.google.protobuf</shadedPattern>
-                      <includes>
-                        <include>com.google.protobuf.**</include>
-                      </includes>
-                    </relocation>
+                    <includes>
+                      <include>com.fasterxml.jackson.dataformat.**</include>
+                    </includes>
+                  </relocation>
+                  <relocation>
+                    <pattern>com.amazonaws</pattern>
+                    <shadedPattern>org.apache.spark.sql.kinesis.shaded.amazonaws</shadedPattern>
+                    <includes>
+                      <include>com.amazonaws.**</include>
+                    </includes>
+                  </relocation>
+                  <relocation>
+                    <pattern>com.google.protobuf</pattern>
+                    <shadedPattern>org.apache.spark.sql.kinesis.shaded.google.protobuf</shadedPattern>
+                    <includes>
+                      <include>com.google.protobuf.**</include>
+                    </includes>
+                  </relocation>
                 </relocations>
                 <filters>
                   <filter>
@@ -213,9 +291,105 @@
             </execution>
           </executions>
         </plugin>
-       </plugins>
+      </plugins>
     </pluginManagement>
-    <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>
-    <testOutputDirectory>target/scala-${scala.binary.version}/test-classes</testOutputDirectory>
+    <!-- Enable surefire and scalatest in all children, in one place: -->
+    <plugins>
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>4.0.2</version>
+      </plugin>
+      <plugin>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-maven-plugin</artifactId>
+        <version>1.0</version>
+      </plugin>
+    </plugins>
+
+  <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>
+  <testOutputDirectory>target/scala-${scala.binary.version}/test-classes</testOutputDirectory>
   </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>2.4</version>
+            <executions>
+              <execution>
+                <id>create-sources-jar</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.5</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>2.10.1</version>
+            <executions>
+              <execution>
+                <id>create-javadoc-jar</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-release-plugin</artifactId>
+            <version>2.5.1</version>
+            <configuration>
+              <autoVersionSubmodules>true</autoVersionSubmodules>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <version>1.6.3</version>
+            <extensions>true</extensions>
+            <configuration>
+              <serverId>ossrh</serverId>
+              <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
+
 </project>
