@@ -23,6 +23,7 @@
   <version> 1.0.1-spark_2.4-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Kinesis Integration for Structured Streaming</name>
+  <description>Connector to read from and write into Kinesis from Structured Streaming Applications</description>
 
   <developers>
     <developer>
