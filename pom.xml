@@ -20,7 +20,7 @@
 
   <groupId>com.qubole.spark</groupId>
   <artifactId>spark-sql-kinesis_2.11</artifactId>
-  <version>0.5.0-spark_2.4-SNAPSHOT</version>
+  <version>0.5.0-spark_2.4</version>
   <packaging>pom</packaging>
   <name>Kinesis Integration for Structured Streaming</name>
   <description>Connector to read from and write into Kinesis from Structured Streaming Applications</description>
