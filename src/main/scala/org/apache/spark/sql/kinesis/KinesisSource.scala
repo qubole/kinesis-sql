@@ -109,6 +109,10 @@ private[kinesis] class KinesisSource(
     sourceOptions.getOrElse("client.maxParallelThreads".
       toLowerCase(Locale.ROOT), "8").toInt
 
+  private val failOnDataLoss =
+    sourceOptions.getOrElse("failOnDataLoss".toLowerCase(Locale.ROOT),
+      "true").toBoolean
+
   def options: Map[String, String] = {
     // This function is used for testing
     sourceOptions
@@ -128,7 +132,7 @@ private[kinesis] class KinesisSource(
   def canCreateNewBatch(shardsInfo: Array[ShardInfo]): Boolean = {
     var shardsInfoToCheck = shardsInfo.par
     val threadPoolSize = Math.min(maxParallelThreads, shardsInfoToCheck.size)
-    val evalPool = ThreadUtils.newForkJoinPool("DeleteFiles", threadPoolSize)
+    val evalPool = ThreadUtils.newForkJoinPool("checkCreateNewBatch", threadPoolSize)
     shardsInfoToCheck.tasksupport = new ForkJoinTaskSupport(evalPool)
     val hasRecords = new AtomicBoolean(false)
     try {
@@ -162,8 +166,9 @@ private[kinesis] class KinesisSource(
       val latestShards = kinesisReader.getShards()
       latestDescribeShardTimestamp = System.currentTimeMillis()
       if (latestShards.nonEmpty) {
-        var newShardInfo = ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo,
-          initialPosition)
+        var newShardInfo = ShardSyncer.getLatestShardInfo(
+          latestShards, prevShardsInfo, initialPosition, failOnDataLoss
+        )
         if (avoidEmptyBatches) {
           if (!hasShardEndAsOffset(newShardInfo)
             && !ShardSyncer.hasNewShards(prevShardsInfo, newShardInfo)

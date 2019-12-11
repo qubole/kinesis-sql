@@ -165,10 +165,6 @@ private[kinesis] object ShardSyncer extends Logging {
 
   def hasNewShards(latestShardsInfo: Seq[ShardInfo],
                    prevShardsInfo: Seq[ShardInfo]): Boolean = {
-    val prevShardsList = new mutable.HashSet[String]
-    prevShardsInfo.foreach {
-      s: ShardInfo => prevShardsList.add(s.shardId)
-    }
     latestShardsInfo.foldLeft(false) {
       (hasNewShard, shardInfo) =>
         if (!hasNewShard) {
@@ -183,15 +179,51 @@ private[kinesis] object ShardSyncer extends Logging {
   def getLatestShardInfo(
       latestShards: Seq[Shard],
       prevShardsInfo: Seq[ShardInfo],
-      initialPosition: KinesisPosition): Seq[ShardInfo] = {
+      initialPosition: KinesisPosition,
+      failOnDataLoss: Boolean = true): Seq[ShardInfo] = {
 
-    val newShardsInfoMap = new mutable.HashMap[String, ShardInfo]
-    val memoizationContext = new mutable.HashMap[ String, Boolean]
     var prevShardsList = new mutable.HashSet[String]
+    var latestShardsList = new mutable.HashSet[String]
     prevShardsInfo.foreach {
       s: ShardInfo => prevShardsList.add(s.shardId)
     }
+    latestShards.foreach {
+      s: Shard => latestShardsList.add(s.getShardId)
+    }
+    // check for deleted shards
+    val deletedShardsList = prevShardsList.diff(latestShardsList)
+    var filteredPrevShardsInfo = prevShardsInfo
+    val newShardsInfoMap = new mutable.HashMap[String, ShardInfo]
+    val memoizationContext = new mutable.HashMap[ String, Boolean]
 
+    // check for deleted Shards and update newShardInfo if failOnDataLoss is false
+    if (deletedShardsList.nonEmpty) {
+      if (failOnDataLoss) {
+        throw new IllegalStateException(
+          s"""
+             | Some data may have been lost because $deletedShardsList  are not available in Kinesis
+             | any more. The shard has been deleted before we have processed all records in it.
+             | If you do not want your streaming query to fail on such cases, set the source option
+             | "failOnDataLoss" to "false"
+           """.stripMargin
+        )
+      } else {
+        log.warn(
+          s"""
+             | Some data may have been lost because $deletedShardsList are not available in Kinesis
+             | any more. The shard has been deleted before we have processed all records in it.
+             | If you want your streaming query to fail on such cases, set the source option
+             | "failOnDataLoss" to "true"
+           """.stripMargin
+        )
+        // filter the shardInfo for non deleted shards.
+        filteredPrevShardsInfo.filter {
+          s: ShardInfo => !deletedShardsList.contains(s.shardId)
+        }
+      }
+    }
+
+    // check for new shards and fetch ShardInfo for them
     openShards(latestShards).map {
       shardId: String =>
         if (prevShardsList.contains(shardId)) {
@@ -204,7 +236,7 @@ private[kinesis] object ShardSyncer extends Logging {
             new ShardInfo(shardId, initialPosition))
         }
     }
-    prevShardsInfo ++ newShardsInfoMap.values.toSeq
+    filteredPrevShardsInfo ++ newShardsInfoMap.values.toSeq
   }
 
 }

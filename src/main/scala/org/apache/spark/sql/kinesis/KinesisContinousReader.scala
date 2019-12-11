@@ -64,6 +64,10 @@ class KinesisContinuousReader(
       "1s"))
   }
 
+  private val failOnDataLoss =
+    sourceOptions.getOrElse("failOnDataLoss".toLowerCase(Locale.ROOT),
+      "true").toBoolean
+
   val kinesisReader = new KinesisReader(
     sourceOptions,
     streamName,
@@ -78,7 +82,8 @@ class KinesisContinuousReader(
       .getOrElse {
         val latestShards = kinesisReader.getShards()
         val latestShardInfo: Seq[ShardInfo] = if (latestShards.nonEmpty) {
-          ShardSyncer.getLatestShardInfo(latestShards, Seq.empty[ShardInfo], initialPosition)
+          ShardSyncer.getLatestShardInfo(
+            latestShards, Seq.empty[ShardInfo], initialPosition, failOnDataLoss)
         } else {
           Seq.empty[ShardInfo]
         }
@@ -106,7 +111,8 @@ class KinesisContinuousReader(
       val syncedShardInfo: Seq[ShardInfo] = getLatestShardInfo(
         latestShards,
         prevShardsInfo,
-        initialPosition)
+        initialPosition,
+        failOnDataLoss)
 
       // In Continuous processing we are unable to find out about a closed shards
       // using previous information. So we need to check if a shard is closed
