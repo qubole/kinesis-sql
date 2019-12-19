@@ -57,7 +57,7 @@ private[kinesis] class KinesisSource(
     initialPosition: KinesisPosition,
     endPointURL: String,
     kinesisCredsProvider: SparkAWSCredentials
-   )
+    )
   extends Source with Serializable with Logging {
 
   import KinesisSource._
@@ -87,7 +87,7 @@ private[kinesis] class KinesisSource(
   private def metadataCommitter: MetadataCommitter[ShardInfo] = {
     metaDataCommitterType.toLowerCase(Locale.ROOT) match {
       case "hdfs" =>
-        new HDFSMetadataCommitter[ShardInfo](metaDataCommitterPath,
+        new HDFSMetadataCommitter[ ShardInfo ](metaDataCommitterPath,
           hadoopConf(sqlContext), sourceOptions)
       case _ => throw new IllegalArgumentException("only HDFS is supported")
     }
@@ -152,14 +152,13 @@ private[kinesis] class KinesisSource(
 
   /** Returns the shards position to start reading data from */
   override def getOffset: Option[Offset] = synchronized {
-
     val defaultOffset = new ShardOffsets(-1L, streamName)
     val prevBatchId = currentShardOffsets.getOrElse(defaultOffset).batchId
     val prevShardsInfo = prevBatchShardInfo(prevBatchId)
     var latestShardInfo: Array[ShardInfo] = Array.empty[ShardInfo]
 
     if (latestDescribeShardTimestamp == -1 ||
-      ((latestDescribeShardTimestamp + describeShardInterval) < System.currentTimeMillis())) {
+        ((latestDescribeShardTimestamp + describeShardInterval) < System.currentTimeMillis())) {
       val latestShards = kinesisReader.getShards()
       latestDescribeShardTimestamp = System.currentTimeMillis()
       if (latestShards.nonEmpty) {

@@ -32,7 +32,7 @@ import org.apache.spark.internal.Logging
 private[kinesis] object ShardSyncer extends Logging {
 
   private def getShardIdToChildShardsMap(latestShards: Seq[Shard]):
-  mutable.Map[String, List[String ]] = {
+    mutable.Map[String, List[String ]] = {
     val shardIdToChildShardsMap = mutable.Map.empty[String, List[String]]
 
     val shardIdToShardMap =
@@ -77,12 +77,12 @@ private[kinesis] object ShardSyncer extends Logging {
   }
 
   private[kinesis] def AddShardInfoForAncestors(
-                                                 shardId: String,
-                                                 latestShards: Seq[Shard],
-                                                 initialPosition: KinesisPosition,
-                                                 prevShardsList: mutable.Set[ String ],
-                                                 newShardsInfoMap: mutable.HashMap[ String, ShardInfo ],
-                                                 memoizationContext: mutable.Map[String, Boolean ]): Unit = {
+     shardId: String,
+     latestShards: Seq[Shard],
+     initialPosition: KinesisPosition,
+     prevShardsList: mutable.Set[ String ],
+     newShardsInfoMap: mutable.HashMap[ String, ShardInfo ],
+     memoizationContext: mutable.Map[String, Boolean ]): Unit = {
 
     val shardIdToShardMap =
       latestShards.map {
@@ -109,18 +109,18 @@ private[kinesis] object ShardSyncer extends Logging {
         if (!prevShardsList.contains(parentShardId) ) {
           logDebug("Need to create a shardInfo for shardId " + parentShardId)
           if (newShardsInfoMap.get(parentShardId).isEmpty) {
-            newShardsInfoMap.put(parentShardId,
-              new ShardInfo(parentShardId, initialPosition))
+              newShardsInfoMap.put(parentShardId,
+                new ShardInfo(parentShardId, initialPosition))
+            }
           }
-        }
       }
       memoizationContext.put(shardId, true)
     }
   }
 
   private[kinesis] def getParentShardIds(
-                                          shard: Shard,
-                                          shards: Seq[Shard]): mutable.HashSet[String] = {
+     shard: Shard,
+     shards: Seq[Shard]): mutable.HashSet[String] = {
     val parentShardIds = new mutable.HashSet[ String ]
     val parentShardId = shard.getParentShardId
     val shardIdToShardMap =
@@ -192,6 +192,7 @@ private[kinesis] object ShardSyncer extends Logging {
     prevShardsInfo.foreach {
       s: ShardInfo => prevShardsList.add(s.shardId)
     }
+
     openShards(latestShards).map {
       shardId: String =>
         if (prevShardsList.contains(shardId)) {
@@ -206,4 +207,5 @@ private[kinesis] object ShardSyncer extends Logging {
     }
     prevShardsInfo ++ newShardsInfoMap.values.toSeq
   }
+
 }
