@@ -36,7 +36,6 @@ import org.apache.spark.util.Utils
 
 /*
  * A [[ContinuousReader]] for data from Kinesis.
- *
  * @param sourceOptions          Kinesis consumer params to use.
  * @param streamName             Name of the Kinesis Stream.
  * @param initialPosition        The Kinesis offsets to start reading data at.
@@ -77,7 +76,7 @@ class KinesisContinuousReader(
       .getOrElse {
         val latestShards = kinesisReader.getShards()
         val latestShardInfo: Seq[ShardInfo] = if (latestShards.nonEmpty) {
-          ShardSyncer.getLatestShardInfo(latestShards, Seq.empty[ShardInfo], initialPosition)
+          ShardSyncer.getLatestShardInfo(latestShards, Seq.empty[ShardInfo], initialPosition, currentShardOffsets.batchId)
         } else {
           Seq.empty[ShardInfo]
         }
@@ -96,6 +95,7 @@ class KinesisContinuousReader(
     import scala.collection.JavaConverters._
 
     logInfo(s"Current Offset is ${currentShardOffsets.toString}")
+
     val prevShardsInfo = currentShardOffsets.shardInfo
 
     // Get the latest shard information and fetch latest ShardInformation
@@ -105,7 +105,7 @@ class KinesisContinuousReader(
       val syncedShardInfo: Seq[ShardInfo] = getLatestShardInfo(
         latestShards,
         prevShardsInfo,
-        initialPosition)
+        initialPosition, currentShardOffsets.batchId)
 
       // In Continuous processing we are unable to find out about a closed shards
       // using previous information. So we need to check if a shard is closed
@@ -237,7 +237,7 @@ case class KinesisContinuousInputPartition(
 
     val kinesisOffset = offset.asInstanceOf[KinesisSourcePartitionOffset]
     require(kinesisOffset.shardInfo == startOffset,
-      s"Expected shardIndo: $startOffset, but got: ${kinesisOffset.shardInfo}")
+      s"  shardIndo: $startOffset, but got: ${kinesisOffset.shardInfo}")
 
     new KinesisContinuousInputPartitionReader(
       kinesisOffset.shardInfo, sourceOptions,
