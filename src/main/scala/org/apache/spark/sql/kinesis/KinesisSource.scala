@@ -155,33 +155,23 @@ private[kinesis] class KinesisSource(
     val defaultOffset = new ShardOffsets(-1L, streamName)
     val prevBatchId = currentShardOffsets.getOrElse(defaultOffset).batchId
     val prevShardsInfo = prevBatchShardInfo(prevBatchId)
-    var latestShardInfo: Array[ShardInfo] = Array.empty[ShardInfo]
 
-    if (latestDescribeShardTimestamp == -1 ||
+    val latestShardInfo: Array[ShardInfo] = {
+      if (latestDescribeShardTimestamp == -1 ||
         ((latestDescribeShardTimestamp + describeShardInterval) < System.currentTimeMillis())) {
-      val latestShards = kinesisReader.getShards()
-      latestDescribeShardTimestamp = System.currentTimeMillis()
-      if (latestShards.nonEmpty) {
-        var newShardInfo = ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo,
-          initialPosition)
-        if (avoidEmptyBatches) {
-          if (!hasShardEndAsOffset(newShardInfo)
-            && !ShardSyncer.hasNewShards(prevShardsInfo, newShardInfo)
-            && !canCreateNewBatch(newShardInfo.toArray)) {
-            newShardInfo = Seq.empty[ShardInfo]
-          }
-        }
-        latestShardInfo = newShardInfo.toArray
+        val latestShards = kinesisReader.getShards()
+        latestDescribeShardTimestamp = System.currentTimeMillis()
+        ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo, initialPosition)
+      } else {
+        prevShardsInfo
       }
-    }
+    }.toArray
 
-    // update currentShardOffsets only when latestShardInfo is not empty
-    // else use last batch's ShardOffsets.
-    // Since there wont be any change in offset, no new batch will be triggered
-    if (latestShardInfo.nonEmpty) {
+    if (!avoidEmptyBatches
+        || hasShardEndAsOffset(latestShardInfo)
+        || ShardSyncer.hasNewShards(prevShardsInfo, latestShardInfo)
+        || canCreateNewBatch(latestShardInfo)) {
       currentShardOffsets = Some(new ShardOffsets(prevBatchId + 1, streamName, latestShardInfo))
-    } else {
-      currentShardOffsets = Some(new ShardOffsets(prevBatchId, streamName, prevShardsInfo.toArray))
     }
 
     currentShardOffsets match {
