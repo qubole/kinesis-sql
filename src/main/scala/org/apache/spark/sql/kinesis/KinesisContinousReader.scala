@@ -97,7 +97,7 @@ class KinesisContinuousReader(
     import scala.collection.JavaConverters._
 
     logInfo(s"Current Offset is ${currentShardOffsets.toString}")
-    val prevShardsInfo = currentShardOffsets.shardInfo
+    val prevShardsInfo = currentShardOffsets.shardInfoMap.values.toSeq
 
     // Get the latest shard information and fetch latest ShardInformation
     val latestShards = kinesisReader.getShards()
@@ -148,7 +148,7 @@ class KinesisContinuousReader(
       }
       syncedShardInfoMap.values.toArray
     } else {
-      currentShardOffsets.shardInfo
+      currentShardOffsets.shardInfoMap.values.toArray
     }
 
     knownOpenShards = latestShardInfo.map {

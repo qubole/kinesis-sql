@@ -157,8 +157,9 @@ private[kinesis] class KinesisSource(
     val prevShardsInfo = prevBatchShardInfo(prevBatchId)
 
     val latestShardInfo: Array[ShardInfo] = {
-      if (latestDescribeShardTimestamp == -1 ||
-        ((latestDescribeShardTimestamp + describeShardInterval) < System.currentTimeMillis())) {
+      if (prevBatchId < 0
+        || latestDescribeShardTimestamp == -1
+        || ((latestDescribeShardTimestamp + describeShardInterval) < System.currentTimeMillis())) {
         val latestShards = kinesisReader.getShards()
         latestDescribeShardTimestamp = System.currentTimeMillis()
         ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo, initialPosition)
@@ -168,10 +169,13 @@ private[kinesis] class KinesisSource(
     }.toArray
 
     if (!avoidEmptyBatches
+        || prevBatchId < 0
         || hasShardEndAsOffset(latestShardInfo)
         || ShardSyncer.hasNewShards(prevShardsInfo, latestShardInfo)
         || canCreateNewBatch(latestShardInfo)) {
       currentShardOffsets = Some(new ShardOffsets(prevBatchId + 1, streamName, latestShardInfo))
+    } else {
+      log.info("Offsets are unchanged since `kinesis.client.avoidEmptyBatches` is enabled")
     }
 
     currentShardOffsets match {
@@ -193,7 +197,7 @@ private[kinesis] class KinesisSource(
 
     val shardInfos = {
       // filter out those shardInfos for which ShardIterator is shard_end
-      currBatchShardOffset.shardInfo.filter {
+      currBatchShardOffset.shardInfoMap.values.toSeq.filter {
         s: (ShardInfo) => !(s.iteratorType.contains(new ShardEnd().iteratorType))
       }.sortBy(_.shardId.toString)
     }
