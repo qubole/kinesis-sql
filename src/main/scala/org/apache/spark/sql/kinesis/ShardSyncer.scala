@@ -93,7 +93,8 @@ private[kinesis] object ShardSyncer extends Logging {
       shardId != null && shardIdToShardMap.contains(shardId) ) {
       if (prevShardsList.contains(shardId) ) {
         // we already have processed this shard in previous batch and added its ancestors
-        memoizationContext.put(shardId, true) 
+        memoizationContext.put(shardId, true)
+        return
       }
       var shard = shardIdToShardMap.get(shardId).get
       // get parent of shards if exist
