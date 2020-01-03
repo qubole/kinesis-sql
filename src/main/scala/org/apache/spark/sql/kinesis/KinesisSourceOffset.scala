@@ -37,12 +37,16 @@ case class KinesisSourceOffset(shardsToOffsets: ShardOffsets) extends OffsetV2 {
       "batchId" -> shardsToOffsets.batchId.toString,
       "streamName" -> shardsToOffsets.streamName)
     val result = HashMap[String, HashMap[String, String]]("metadata" -> metadata)
-    shardsToOffsets.shardInfo.foreach {
-      si =>
-        val shardInfo = result.getOrElse(si.shardId, new HashMap[String, String])
-        shardInfo += "iteratorType" -> si.iteratorType
-        shardInfo += "iteratorPosition" -> si.iteratorPosition
-        result += si.shardId -> shardInfo
+
+    val shardInfos = shardsToOffsets.shardInfoMap.keySet.toSeq.sorted  // sort for more determinism
+
+    shardInfos.foreach {
+      shardId: String =>
+        val shardInfo: ShardInfo = shardsToOffsets.shardInfoMap.get(shardId).get
+        val part = result.getOrElse(shardInfo.shardId, new HashMap[String, String])
+        part += "iteratorType" -> shardInfo.iteratorType
+        part += "iteratorPosition" -> shardInfo.iteratorPosition
+        result += shardId -> part
     }
     Serialization.write(result)(KinesisSourceOffset.format)
     }
@@ -80,16 +84,25 @@ object KinesisSourceOffset {
     try {
       val readObj = Serialization.read[ Map[ String, Map[ String, String ] ] ](json)
       val metadata = readObj.get("metadata")
-      val shardInfo: Array[ ShardInfo ] = readObj.filter(_._1 != "metadata").map {
-        case (shardId, value) => new ShardInfo(shardId.toString,
+      val shardInfoMap: Map[String, ShardInfo ] = readObj.filter(_._1 != "metadata").map {
+        case (shardId, value) => shardId.toString -> new ShardInfo(shardId.toString,
           value.get("iteratorType").get,
           value.get("iteratorPosition").get)
-      }.toArray
-      KinesisSourceOffset(new ShardOffsets(metadata.get("batchId").toLong,
-        metadata.get("streamName"), shardInfo))
+      }.toMap
+      KinesisSourceOffset(
+        new ShardOffsets(
+          metadata.get("batchId").toLong,
+          metadata.get("streamName"),
+          shardInfoMap))
     } catch {
       case NonFatal(x) => throw new IllegalArgumentException(x)
     }
+  }
+
+  def getMap(shardInfos: Array[ShardInfo]): Map[String, ShardInfo] = {
+    shardInfos.map {
+      s: ShardInfo => (s.shardId -> s)
+    }.toMap
   }
 
 }

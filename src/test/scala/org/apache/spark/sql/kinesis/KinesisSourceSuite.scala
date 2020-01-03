@@ -144,6 +144,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
       .option("AWSAccessKeyId", KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId)
       .option("AWSSecretKey", KinesisTestUtils.getAWSCredentials().getAWSSecretKey)
       .option("startingposition", "TRIM_HORIZON")
+      .option("kinesis.client.avoidEmptyBatches", true)
 
     val kinesis = reader.load()
     assert (kinesis.schema == KinesisReader.kinesisSchema)
@@ -156,10 +157,8 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
       .queryName("schematest")
       .start()
 
-    query.awaitTermination(streamingTimeout.toMillis)
+    query.processAllAvailable()
 
-    // sleep for 2s for atleast one trigger completion
-    Thread.sleep(2000.toLong)
 
     val rows = spark.table("schematest").collect()
     assert(rows.length === 1, s"Unexpected results: ${rows.toList}")
@@ -540,7 +539,6 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
       CheckAnswer(6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
     )
   }
-
 }
 
 abstract class KinesisStressSourceSuite(aggregateTestData: Boolean) extends KinesisSourceTest {
@@ -659,6 +657,125 @@ abstract class KinesisStressSourceSuite(aggregateTestData: Boolean) extends Kine
 
 }
 
+class EmptyBatchTestSuite extends KinesisSourceTest {
+
+  import testImplicits._
+
+  testIfEnabled("When avoidEmptyBatch is enabled") {
+
+    val clock = new StreamManualClock
+
+    val waitUntilBatchProcessed = AssertOnQuery { q =>
+      eventually(Timeout(streamingTimeout)) {
+        if (!q.exception.isDefined) {
+          assert(clock.isStreamWaitingAt(clock.getTimeMillis()))
+        }
+      }
+      if (q.exception.isDefined) {
+        throw q.exception.get
+      }
+      true
+    }
+
+    val reader = spark
+      .readStream
+      .format("kinesis")
+      .option("streamName", testUtils.streamName)
+      .option("endpointUrl", testUtils.endpointUrl)
+      .option("AWSAccessKeyId", KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId)
+      .option("AWSSecretKey", KinesisTestUtils.getAWSCredentials().getAWSSecretKey)
+      .option("kinesis.client.avoidEmptyBatches", "true")
+
+    val kinesis = reader.load()
+      .selectExpr("CAST(data AS STRING)")
+      .as[String]
+    val result = kinesis.map(_.toInt)
+    val testData = 6 to 10
+    val testData2 = 11 to 15
+
+    testStream(result)(
+      StartStream(ProcessingTime(100), clock),
+      waitUntilBatchProcessed,
+      AssertOnQuery { query =>
+        logInfo("Push Data ")
+        testUtils.pushData(testData.map(_.toString).toArray, false)
+        true
+      },
+      AdvanceManualClock(100),
+      waitUntilBatchProcessed,
+      CheckAnswer(6, 7, 8, 9, 10),
+      AssertOnQuery { query =>
+        query.lastExecution.currentBatchId == 1
+        true
+      },
+      AdvanceManualClock(100),
+      waitUntilBatchProcessed,
+      AdvanceManualClock(100),
+      waitUntilBatchProcessed,
+      AssertOnQuery { query =>
+        // BatchId should be 1
+        query.lastExecution.currentBatchId == 1
+      }
+    )
+  }
+
+  testIfEnabled("When avoidEmptyBatch is disabled") {
+
+    val clock = new StreamManualClock
+
+    val waitUntilBatchProcessed = AssertOnQuery { q =>
+      eventually(Timeout(streamingTimeout)) {
+        if (!q.exception.isDefined) {
+          assert(clock.isStreamWaitingAt(clock.getTimeMillis()))
+        }
+      }
+      if (q.exception.isDefined) {
+        throw q.exception.get
+      }
+      true
+    }
+
+    val reader = spark
+      .readStream
+      .format("kinesis")
+      .option("streamName", testUtils.streamName)
+      .option("endpointUrl", testUtils.endpointUrl)
+      .option("AWSAccessKeyId", KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId)
+      .option("AWSSecretKey", KinesisTestUtils.getAWSCredentials().getAWSSecretKey)
+      .option("kinesis.client.avoidEmptyBatches", "false")
+
+    val kinesis = reader.load()
+      .selectExpr("CAST(data AS STRING)")
+      .as[String]
+    val result = kinesis.map(_.toInt)
+    val testData = 6 to 10
+
+    testStream(result)(
+      StartStream(ProcessingTime(100), clock),
+      waitUntilBatchProcessed,
+      AssertOnQuery { query =>
+        logInfo("Push Data ")
+        testUtils.pushData(testData.map(_.toString).toArray, false)
+        true
+      },
+      AdvanceManualClock(100),
+      waitUntilBatchProcessed,
+      CheckAnswer(6, 7, 8, 9, 10),
+      AssertOnQuery { query =>
+        query.lastExecution.currentBatchId == 1
+        true
+      },
+      AdvanceManualClock(100),
+      waitUntilBatchProcessed,
+      AdvanceManualClock(100),
+      waitUntilBatchProcessed,
+      AssertOnQuery { query =>
+        // BatchId should be 3
+        query.lastExecution.currentBatchId == 3
+      }
+    )
+  }
+}
 
 class WithoutAggregationKinesisSourceSuite extends KinesisSourceSuite(aggregateTestData = false)
 
@@ -667,4 +784,3 @@ class WithoutAggregationKinesisSourceStressTestSuite
 
 class WithAggregationKinesisSourceStressTestSuite
   extends KinesisStressSourceSuite(aggregateTestData = true)
-
