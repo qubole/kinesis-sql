@@ -186,6 +186,9 @@ private[kinesis] object ShardSyncer extends Logging {
       prevShardsInfo: Seq[ShardInfo],
       initialPosition: KinesisPosition): Seq[ShardInfo] = {
 
+    if (latestShards.isEmpty) {
+      return prevShardsInfo
+    }
     val newShardsInfoMap = new mutable.HashMap[String, ShardInfo]
     val memoizationContext = new mutable.HashMap[ String, Boolean]
     var prevShardsList = new mutable.HashSet[String]
