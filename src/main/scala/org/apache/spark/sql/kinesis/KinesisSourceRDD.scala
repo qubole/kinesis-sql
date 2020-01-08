@@ -120,7 +120,13 @@ private[kinesis] class KinesisSourceRDD(
     val recordPerRequest =
       sourceOptions.getOrElse("executor.maxRecordPerRead".toLowerCase(Locale.ROOT), "10000").toInt
 
+    val idleTimeBetweenReads =
+      sourceOptions.getOrElse("executor.idleTimeBetweenReads".
+        toLowerCase(Locale.ROOT), "1000").toLong
+
+
     val startTimestamp: Long = System.currentTimeMillis
+    var lastGetRecords: Long = 0
     var lastReadSequenceNumber: String = ""
     var numRecordRead: Long = 0
     var hasShardClosed = false
@@ -164,12 +170,27 @@ private[kinesis] class KinesisSourceRDD(
             val currentTimestamp: Long = System.currentTimeMillis
             if (canFetchMoreRecords(currentTimestamp)) {
               val shardInterator = getShardIterator()
+              // Delay if last call within a second.
+              if (lastGetRecords > 0 && (currentTimestamp - lastGetRecords) < idleTimeBetweenReads)
+              {
+                val delayMs: Long = idleTimeBetweenReads - (currentTimestamp - lastGetRecords)
+                logInfo(s"Sleeping for ${delayMs}ms")
+                Thread.sleep(delayMs)
+              }
+
               val records: GetRecordsResult = kinesisReader.getKinesisRecords(getShardIterator,
                 recordPerRequest)
               // de-aggregate records
                val deaggregateRecords = kinesisReader.deaggregateRecords(records.getRecords, null)
                fetchedRecords = deaggregateRecords.asScala.toArray
               _shardIterator = records.getNextShardIterator
+
+              // Update lastGetRecords timestamp only if got records, so we
+              // don't delay the iterations to get to the beginning of the
+              // shard
+              if (fetchedRecords.length > 0) {
+                lastGetRecords = System.currentTimeMillis
+              }
               logDebug(s"Milli secs behind is ${records.getMillisBehindLatest.longValue()}")
               if ( _shardIterator == null ) {
                 hasShardClosed = true
