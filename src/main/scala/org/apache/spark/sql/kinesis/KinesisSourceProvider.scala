@@ -20,6 +20,7 @@ package org.apache.spark.sql.kinesis
 import java.util.{Locale, Optional}
 
 import scala.collection.JavaConverters._
+import scala.util.parsing.json._
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SQLContext
@@ -112,6 +113,20 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
       throw new IllegalArgumentException(
         "Stream name is a required field")
     }
+    if(caseInsensitiveParams.contains(STARTING_POSITION_KEY)) {
+      if (caseInsensitiveParams.get(STARTING_POSITION_KEY).
+        get.trim.toLowerCase()=="after_sequence_number") {
+        if (!caseInsensitiveParams.contains(STARTING_POSITION_SHARD_SEQUENCE_NUMBER)||
+          caseInsensitiveParams.get(STARTING_POSITION_SHARD_SEQUENCE_NUMBER).get.isEmpty) {
+          throw new IllegalArgumentException(
+            "for starting position aftersequencenumber, sequencenumber is required field")
+        }
+        if (JSON.parseFull(caseInsensitiveParams.
+          get(STARTING_POSITION_SHARD_SEQUENCE_NUMBER).get)==None) {
+          throw new IllegalArgumentException("sequencenumber json is invalid")
+        }
+      }
+    }
   }
 
   private def validateSinkOptions(caseInsensitiveParams: Map[String, String]): Unit = {
@@ -202,6 +217,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val AWS_STS_SESSION_NAME = "awsstssessionname"
   private[kinesis] val STARTING_POSITION_KEY = "startingposition"
   private[kinesis] val DESCRIBE_SHARD_INTERVAL = "client.describeshardinterval"
+  private[kinesis] val STARTING_POSITION_SHARD_SEQUENCE_NUMBER = "sequencenumber"
 
   // Sink Options
   private[kinesis] val SINK_STREAM_NAME_KEY = "streamname"
@@ -210,10 +226,11 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val SINK_MAX_CONNECTIONS = "kinesis.executor.maxconnections"
   private[kinesis] val SINK_AGGREGATION_ENABLED = "kinesis.executor.aggregationenabled"
 
-
   private[kinesis] def getKinesisPosition(
       params: Map[String, String]): KinesisPosition = {
     // TODO Support custom shards positions
+    val SHARD_SEQUENCE_NUMBER = params.get(STARTING_POSITION_SHARD_SEQUENCE_NUMBER).getOrElse(null)
+
     val CURRENT_TIMESTAMP = System.currentTimeMillis
     params.get(STARTING_POSITION_KEY).map(_.trim) match {
       case Some(position) if position.toLowerCase(Locale.ROOT) == "latest" =>
@@ -222,6 +239,8 @@ private[kinesis] object KinesisSourceProvider extends Logging {
         new TrimHorizon
       case Some(position) if position.toLowerCase(Locale.ROOT) == "earliest" =>
         new TrimHorizon
+      case Some(position) if position.toLowerCase(Locale.ROOT) == "after_sequence_number" =>
+        new AfterSequenceNumber(SHARD_SEQUENCE_NUMBER)
       case None => new AtTimeStamp(CURRENT_TIMESTAMP)
     }
   }

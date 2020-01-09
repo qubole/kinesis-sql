@@ -17,10 +17,14 @@
 
 package org.apache.spark.sql.kinesis
 
+import scala.util.parsing.json._
+
 import com.amazonaws.services.kinesis.model.Shard
 import scala.collection.mutable
 
 import org.apache.spark.internal.Logging
+
+
 
 /*
  * Helper class to sync batch with shards of the Kinesis stream.
@@ -110,8 +114,20 @@ private[kinesis] object ShardSyncer extends Logging {
         if (!prevShardsList.contains(parentShardId) ) {
           logDebug("Need to create a shardInfo for shardId " + parentShardId)
           if (newShardsInfoMap.get(parentShardId).isEmpty) {
-              newShardsInfoMap.put(parentShardId,
-                new ShardInfo(parentShardId, initialPosition))
+            if (initialPosition.iteratorType.equals("AFTER_SEQUENCE_NUMBER")) {
+              val positionMap = JSON.parseFull(initialPosition.iteratorPosition).get
+                                                    .asInstanceOf[Map[String, String]]
+              if (positionMap.contains(parentShardId)) {
+                newShardsInfoMap.put(parentShardId, new ShardInfo(parentShardId,
+                  new AfterSequenceNumber(positionMap.get(parentShardId).get)))
+              }
+              else {
+                newShardsInfoMap.put(parentShardId, new ShardInfo(parentShardId, new ShardEnd))
+              }
+            }
+            else {
+              newShardsInfoMap.put(parentShardId, new ShardInfo(parentShardId, initialPosition))
+            }
             }
           }
       }
@@ -202,10 +218,25 @@ private[kinesis] object ShardSyncer extends Logging {
           logDebug("Info for shardId " + shardId + " already exists")
         }
         else {
-          AddShardInfoForAncestors(shardId,
-            latestShards, initialPosition, prevShardsList, newShardsInfoMap, memoizationContext)
-          newShardsInfoMap.put(shardId,
-            new ShardInfo(shardId, initialPosition))
+          AddShardInfoForAncestors(shardId, latestShards,
+            initialPosition, prevShardsList, newShardsInfoMap, memoizationContext)
+
+          if (initialPosition.iteratorType.equals("AFTER_SEQUENCE_NUMBER")) {
+            val positionMap = JSON.parseFull(initialPosition.iteratorPosition).get
+                                      .asInstanceOf[Map[String, String]]
+
+            if (positionMap.contains(shardId)) {
+              newShardsInfoMap.put(shardId,
+                new ShardInfo(shardId, new AfterSequenceNumber(positionMap.get(shardId).get)))
+            }
+            else {
+              newShardsInfoMap.put(shardId, new ShardInfo(shardId, new TrimHorizon))
+            }
+          }
+          else {
+            newShardsInfoMap.put(shardId, new ShardInfo(shardId, initialPosition))
+          }
+
         }
     }
     prevShardsInfo ++ newShardsInfoMap.values.toSeq
