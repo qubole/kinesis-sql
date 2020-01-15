@@ -20,7 +20,7 @@
 
   <groupId>com.qubole.spark</groupId>
   <artifactId>spark-sql-kinesis_2.11</artifactId>
-  <version>1.1.1-spark_2.4-SNAPSHOT</version>
+  <version>1.1.0-spark_2.4-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Kinesis Integration for Structured Streaming</name>
   <description>Connector to read from and write into Kinesis from Structured Streaming Applications</description>
@@ -50,7 +50,7 @@
     <connection>scm:git:git://github.com/qubole/kinesis-sql.git</connection>
     <url>http://github.com/qubole/kinesis-sql</url>
     <developerConnection>scm:git:git@github.com:qubole/kinesis-sql.git</developerConnection>
-    <tag>spark-sql-kinesis_2.11-0.5.0-spark_2.4</tag>
+    <tag>spark-sql-kinesis_2.11-1.1.1-spark_2.4</tag>
   </scm>
 
   <inceptionYear>2018</inceptionYear>
@@ -188,6 +188,8 @@
               <id>compile</id>
               <goals>
                 <goal>compile</goal>
+                <goal>add-source</goal>
+                <goal>doc-jar</goal>
               </goals>
               <phase>compile</phase>
             </execution>
@@ -209,14 +211,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>4.0.2</version>
+          <version>3.7.0</version>
           <executions>
             <execution>
               <phase>compile</phase>
               <goals>
                 <goal>compile</goal>
-                <goal>add-source</goal>
-                <goal>doc-jar</goal>
               </goals>
             </execution>
           </executions>
