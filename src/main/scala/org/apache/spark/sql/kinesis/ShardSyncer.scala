@@ -192,7 +192,6 @@ private[kinesis] object ShardSyncer extends Logging {
     }
     // check for deleted shards
     val deletedShardsList = prevShardsList.diff(latestShardsList)
-    var filteredPrevShardsInfo = prevShardsInfo
     val newShardsInfoMap = new mutable.HashMap[String, ShardInfo]
     val memoizationContext = new mutable.HashMap[ String, Boolean]
 
@@ -216,11 +215,12 @@ private[kinesis] object ShardSyncer extends Logging {
              | "failOnDataLoss" to "true"
            """.stripMargin
         )
-        // filter the shardInfo for non deleted shards.
-        filteredPrevShardsInfo.filter {
-          s: ShardInfo => !deletedShardsList.contains(s.shardId)
-        }
       }
+    }
+
+    // filter the deleted shards
+    var filteredPrevShardsInfo = prevShardsInfo.filter {
+      s: ShardInfo => !deletedShardsList.contains(s.shardId)
     }
 
     // check for new shards and fetch ShardInfo for them
