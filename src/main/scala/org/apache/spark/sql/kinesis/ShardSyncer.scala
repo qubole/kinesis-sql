@@ -200,10 +200,10 @@ private[kinesis] object ShardSyncer extends Logging {
       if (failOnDataLoss) {
         throw new IllegalStateException(
           s"""
-             | Some data may have been lost because $deletedShardsList  are not available in Kinesis
-             | any more. The shard has been deleted before we have processed all records in it.
-             | If you do not want your streaming query to fail on such cases, set the source option
-             | "failOnDataLoss" to "false"
+             | Some data may have been lost because ${deletedShardsList.toString()}
+             | are not available in Kinesis any more. The shard has been deleted before
+             | we have processed all records in it. If you do not want your streaming query
+             | to fail on such cases, set the source option "failOnDataLoss" to "false"
            """.stripMargin
         )
       } else {

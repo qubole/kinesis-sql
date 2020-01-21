@@ -49,7 +49,8 @@ class KinesisContinuousReader(
                                streamName: String,
                                initialPosition: KinesisPosition,
                                endPointURL: String,
-                               kinesisCredsProvider: SparkAWSCredentials)
+                               kinesisCredsProvider: SparkAWSCredentials,
+                               failOnDataLoss: Boolean = true)
   extends ContinuousReader with Logging {
 
   private var currentShardOffsets: ShardOffsets = _
@@ -62,10 +63,6 @@ class KinesisContinuousReader(
     Utils.timeStringAsMs(sourceOptions.getOrElse(KinesisSourceProvider.DESCRIBE_SHARD_INTERVAL,
       "1s"))
   }
-
-  private val failOnDataLoss =
-    sourceOptions.getOrElse("failOnDataLoss".toLowerCase(Locale.ROOT),
-      "true").toBoolean
 
   val kinesisReader = new KinesisReader(
     sourceOptions,

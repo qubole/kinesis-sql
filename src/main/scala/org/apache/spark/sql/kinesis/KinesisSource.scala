@@ -56,7 +56,8 @@ private[kinesis] class KinesisSource(
     streamName: String,
     initialPosition: KinesisPosition,
     endPointURL: String,
-    kinesisCredsProvider: SparkAWSCredentials
+    kinesisCredsProvider: SparkAWSCredentials,
+    failOnDataLoss: Boolean = true
     )
   extends Source with Serializable with Logging {
 
@@ -108,10 +109,6 @@ private[kinesis] class KinesisSource(
   private val maxParallelThreads =
     sourceOptions.getOrElse("client.maxParallelThreads".
       toLowerCase(Locale.ROOT), "8").toInt
-
-  private val failOnDataLoss =
-    sourceOptions.getOrElse("failOnDataLoss".toLowerCase(Locale.ROOT),
-      "true").toBoolean
 
   def options: Map[String, String] = {
     // This function is used for testing
@@ -224,7 +221,8 @@ private[kinesis] class KinesisSource(
       kinesisCredsProvider,
       endPointURL,
       hadoopConf(sqlContext),
-      metadataPath)
+      metadataPath,
+      failOnDataLoss)
 
     val rdd = kinesisSourceRDD.map { r: Record =>
       InternalRow(
