@@ -139,7 +139,7 @@ private[kinesis] class KinesisSourceRDD(
             sourcePartition.shardInfo.iteratorType,
             sourcePartition.shardInfo.iteratorPosition,
             failOnDataLoss)
-          if (_shardIterator == null && !failOnDataLoss) {
+          if (!failOnDataLoss && _shardIterator == null) {
             logWarning(
               s"""
                  | Some data may have been lost because ${sourcePartition.shardInfo.shardId}

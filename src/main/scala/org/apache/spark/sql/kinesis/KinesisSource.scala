@@ -115,6 +115,11 @@ private[kinesis] class KinesisSource(
     sourceOptions
   }
 
+  def getFailOnDataLoss(): Boolean = {
+    // This function is used for testing
+    failOnDataLoss
+  }
+
   /** Makes an API call to get one record for a shard. Return true if the call is successful  */
   def hasNewData(shardInfo: ShardInfo): Boolean = {
     val shardIterator = kinesisReader.getShardIterator(
