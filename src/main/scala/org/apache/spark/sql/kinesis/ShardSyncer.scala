@@ -94,6 +94,7 @@ private[kinesis] object ShardSyncer extends Logging {
       if (prevShardsList.contains(shardId) ) {
         // we already have processed this shard in previous batch and added its ancestors
         memoizationContext.put(shardId, true)
+        return
       }
       var shard = shardIdToShardMap.get(shardId).get
       // get parent of shards if exist
@@ -176,12 +177,28 @@ private[kinesis] object ShardSyncer extends Logging {
     }
   }
 
+  def hasDeletedShards(latestShardsInfo: Seq[ShardInfo],
+                   prevShardsInfo: Seq[ShardInfo]): Boolean = {
+    prevShardsInfo.foldLeft(false) {
+      (hasDeletedShard, shardInfo) =>
+        if (!hasDeletedShard) {
+          // Check only if hasDeletedShard is false
+          latestShardsInfo.contains(shardInfo.shardId)
+        } else {
+          hasDeletedShard
+        }
+    }
+  }
+
   def getLatestShardInfo(
       latestShards: Seq[Shard],
       prevShardsInfo: Seq[ShardInfo],
       initialPosition: KinesisPosition,
       failOnDataLoss: Boolean = true): Seq[ShardInfo] = {
 
+    if (latestShards.isEmpty) {
+      return prevShardsInfo
+    }
     var prevShardsList = new mutable.HashSet[String]
     var latestShardsList = new mutable.HashSet[String]
     prevShardsInfo.foreach {

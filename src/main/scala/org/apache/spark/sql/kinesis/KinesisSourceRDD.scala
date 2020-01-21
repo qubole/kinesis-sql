@@ -42,16 +42,25 @@ private[kinesis] case class ShardInfo(
 private[kinesis] case class ShardOffsets(
     batchId: Long,
     streamName: String,
-    shardInfo: Array[ShardInfo]
+    shardInfoMap: Map[String, ShardInfo]
     ) extends Serializable {
 
   def this(batchId: Long, streamName: String) {
-    this(batchId, streamName, Array.empty[ShardInfo])
+    this(batchId, streamName, Map.empty[String, ShardInfo])
   }
 
-  def this(shardInfo: Array[ShardInfo]) {
-    this(-1, "", shardInfo)
+  def this(shardInfoMap: Map[String, ShardInfo]) {
+    this(-1, "", shardInfoMap)
   }
+
+  def this(batchId: Long, streamName: String, shardInfos: Array[ShardInfo]) {
+    this(batchId, streamName, KinesisSourceOffset.getMap(shardInfos))
+  }
+
+  def this(shardInfos: Array[ShardInfo]) {
+    this(-1, "", KinesisSourceOffset.getMap(shardInfos))
+  }
+
 }
 
 
