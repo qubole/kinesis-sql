@@ -108,6 +108,7 @@ class KinesisSourceOptionsSuite extends StreamTest with SharedSQLContext {
           "kinesis",
           caseInsensitiveOptions
         )
+      assert(source.asInstanceOf[KinesisSource].getFailOnDataLoss() == true)
       val kinesisSourceOptions = source.asInstanceOf[KinesisSource].options
       newOptions.foreach {
         case (k, v) =>
@@ -124,7 +125,30 @@ class KinesisSourceOptionsSuite extends StreamTest with SharedSQLContext {
       ("kinesis.client.numRetries", "2")
     )
   }
+
+  test("test for failOnDataLoss") {
+    def testfailOnDataLossOptions(value: Boolean): Unit = {
+      var options = Map.empty[String, String]
+      options = options + ("streamname" -> "tmpStream")
+      options = options + ("failOnDataLoss" -> value.toString)
+      // caseInsensitiveOptions are used to create a source
+      val caseInsensitiveOptions = options.map(
+        kv => kv.copy(_1 = kv._1.toLowerCase(Locale.ROOT))
+      )
+      val source = (new KinesisSourceProvider)
+        .createSource(
+          spark.sqlContext,
+          "/tmp/path",
+          None,
+          "kinesis",
+          caseInsensitiveOptions
+        )
+      assert(source.asInstanceOf[KinesisSource].getFailOnDataLoss() == value)
+    }
+    Seq(true, false).foreach(_ => testfailOnDataLossOptions(_))
+  }
 }
+
 
 abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSourceTest {
 
@@ -148,6 +172,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
 
     val kinesis = reader.load()
     assert (kinesis.schema == KinesisReader.kinesisSchema)
+
     val result = kinesis.selectExpr("CAST(data AS STRING)", "streamName",
       "partitionKey", "sequenceNumber", "CAST(approximateArrivalTimestamp AS TIMESTAMP)")
       .as[(String, String, String, String, Long)]

@@ -98,7 +98,8 @@ private[kinesis] case class KinesisReader(
 
   def getShardIterator(shardId: String,
                        iteratorType: String,
-                       iteratorPosition: String): String = {
+                       iteratorPosition: String,
+                       failOnDataLoss: Boolean = true): String = {
 
     val getShardIteratorRequest = new GetShardIteratorRequest
     getShardIteratorRequest.setShardId(shardId)
@@ -115,13 +116,22 @@ private[kinesis] case class KinesisReader(
       getShardIteratorRequest.setTimestamp(new java.util.Date(iteratorPosition.toLong))
     }
 
-    val getShardIteratorResult: GetShardIteratorResult = runUninterruptibly {
+    runUninterruptibly {
       retryOrTimeout[GetShardIteratorResult](
         s"Fetching Shard Iterator") {
-        getAmazonClient.getShardIterator(getShardIteratorRequest)
+        try {
+          getAmazonClient.getShardIterator(getShardIteratorRequest)
+        } catch {
+          case r: ResourceNotFoundException =>
+            if (!failOnDataLoss) {
+              new GetShardIteratorResult()
+            }
+            else {
+              throw r
+            }
+        }
       }
-    }
-    getShardIteratorResult.getShardIterator
+    }.getShardIterator
   }
 
 
@@ -253,6 +263,7 @@ private[kinesis] case class KinesisReader(
   }
 
 }
+
 
 private [kinesis]  object KinesisReader {
 

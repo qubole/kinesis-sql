@@ -21,11 +21,13 @@ package org.apache.spark.sql.kinesis
 import org.scalatest.PrivateMethodTester
 import scala.util.Try
 
-import org.apache.spark.sql.test.SharedSQLContext
 import org.apache.spark.SparkException
 import org.apache.spark.sql.kinesis.KinesisTestUtils.{envVarNameForEnablingTests, shouldRunTests}
+import org.apache.spark.sql.test.SharedSQLContext
 
 class KinesisReaderSuite extends SharedSQLContext with PrivateMethodTester {
+
+  protected var testUtils: KinesisTestUtils = _
 
   /** Run the test if environment variable is set or ignore the test */
   def testIfEnabled(testName: String)(testBody: => Unit) {
@@ -87,5 +89,40 @@ class KinesisReaderSuite extends SharedSQLContext with PrivateMethodTester {
         )
       kinesisReader.getShards()
     }.isSuccess
+  }
+
+  testIfEnabled("getShardIterator should return null when shard-id is incorrect" +
+    " and failOnDataLoss is false") {
+    val kinesisReader =
+      new KinesisReader(
+        Map.empty[String, String],
+        "Test",
+        BasicCredentials(
+          KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId,
+          KinesisTestUtils.getAWSCredentials().getAWSSecretKey
+        ),
+        KinesisTestUtils.endpointUrl
+      )
+    val shardIterator = kinesisReader.getShardIterator("BAD-SHARD-ID", "LATEST",
+      "", false)
+    assert(shardIterator === null)
+  }
+
+  testIfEnabled("getShardIterator should throw exception when shard-id is incorrect" +
+    " and failOnDataLoss is true") {
+    val ex = intercept[ SparkException  ] {
+      val kinesisReader =
+        new KinesisReader(
+          Map.empty[String, String],
+          "Test",
+          BasicCredentials(
+            KinesisTestUtils.getAWSCredentials().getAWSAccessKeyId,
+            KinesisTestUtils.getAWSCredentials().getAWSSecretKey
+          ),
+          KinesisTestUtils.endpointUrl
+        )
+      val shardIterator = kinesisReader.getShardIterator("BAD-SHARD-ID", "LATEST",
+        "", true)
+    }
   }
 }

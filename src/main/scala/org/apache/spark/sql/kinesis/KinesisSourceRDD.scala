@@ -82,7 +82,8 @@ private[kinesis] class KinesisSourceRDD(
     kinesisCredsProvider: SparkAWSCredentials,
     endpointUrl: String,
     conf: SerializableConfiguration,
-    metadataPath: String
+    metadataPath: String,
+    failOnDataLoss: Boolean = true
     )
   extends RDD[Record](sparkContext, Nil) {
 
@@ -136,9 +137,21 @@ private[kinesis] class KinesisSourceRDD(
           _shardIterator = kinesisReader.getShardIterator(
             sourcePartition.shardInfo.shardId,
             sourcePartition.shardInfo.iteratorType,
-            sourcePartition.shardInfo.iteratorPosition)
+            sourcePartition.shardInfo.iteratorPosition,
+            failOnDataLoss)
+          if (!failOnDataLoss && _shardIterator == null) {
+            logWarning(
+              s"""
+                 | Some data may have been lost because ${sourcePartition.shardInfo.shardId}
+                 | is not available in Kinesis any more. The shard has
+                 | we have processed all records in it. We would ignore th
+                 | processing. If you want your streaming query to
+                 |  set the source option "failOnDataLoss" to "true"
+                """.stripMargin)
+            return _shardIterator
+          }
         }
-        assert(_shardIterator!=null)
+        assert(_shardIterator != null)
         _shardIterator
       }
 
@@ -162,13 +175,15 @@ private[kinesis] class KinesisSourceRDD(
           currentIndex = 0
           while (fetchedRecords.length == 0 && fetchNext == true)  {
             val currentTimestamp: Long = System.currentTimeMillis
-            if (canFetchMoreRecords(currentTimestamp)) {
-              val shardInterator = getShardIterator()
-              val records: GetRecordsResult = kinesisReader.getKinesisRecords(getShardIterator,
-                recordPerRequest)
+            if (canFetchMoreRecords(currentTimestamp) && getShardIterator() != null) {
+              // getShardIterator() should raise exception if its null if failOnDataLoss is true
+              // if failOnDataLoss is false, getShardIterator() will be null and we should stop
+              // fetching more records
+              val records: GetRecordsResult = kinesisReader.getKinesisRecords(
+                _shardIterator, recordPerRequest)
               // de-aggregate records
-               val deaggregateRecords = kinesisReader.deaggregateRecords(records.getRecords, null)
-               fetchedRecords = deaggregateRecords.asScala.toArray
+              val deaggregateRecords = kinesisReader.deaggregateRecords(records.getRecords, null)
+              fetchedRecords = deaggregateRecords.asScala.toArray
               _shardIterator = records.getNextShardIterator
               logDebug(s"Milli secs behind is ${records.getMillisBehindLatest.longValue()}")
               if ( _shardIterator == null ) {
@@ -180,6 +195,7 @@ private[kinesis] class KinesisSourceRDD(
               }
             }
             else {
+              // either we cannot fetch more records or ShardIterator was null
               fetchNext = false
             }
           }
