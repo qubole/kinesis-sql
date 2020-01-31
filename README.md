@@ -6,7 +6,9 @@ Implementation of Kinesis Source Provider in Spark Structured Streaming. [SPARK-
 
 ## Downloading and Using the Connector
 
-The connector is available from the Maven Central repository. It can be used using the --packages option or the spark.jars.packages configuration property. Use the following connector artifact com.qubole.spark/spark-sql-kinesis_2.11/1.1.2-spark_2.4
+The connector is available from the Maven Central repository. It can be used using the --packages option or the spark.jars.packages configuration property. Use the following connector artifact
+
+	com.qubole.spark/spark-sql-kinesis_2.11/1.1.2-spark_2.4
 
 
 ## Developer Setup
