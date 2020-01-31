@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/qubole/kinesis-sql.svg?branch=master)](https://travis-ci.org/qubole/kinesis-sql)
+
 # Kinesis Connector for Structured Streaming 
 
 Implementation of Kinesis Source Provider in Spark Structured Streaming. [SPARK-18165](https://issues.apache.org/jira/browse/SPARK-18165) describes the need for such implementation. 
