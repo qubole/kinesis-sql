@@ -85,6 +85,8 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     val awsSecretKey = caseInsensitiveParams.get(AWS_SECRET_KEY).getOrElse("")
     val awsStsRoleArn = caseInsensitiveParams.get(AWS_STS_ROLE_ARN).getOrElse("")
     val awsStsSessionName = caseInsensitiveParams.get(AWS_STS_SESSION_NAME).getOrElse("")
+    val awsUseInstanceProfile = caseInsensitiveParams.getOrElse(AWS_USE_INSTANCE_PROFILE, "true")
+      .toBoolean
 
     val regionName = caseInsensitiveParams.get(REGION_NAME_KEY)
       .getOrElse(DEFAULT_KINESIS_REGION_NAME)
@@ -100,8 +102,10 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
       BasicCredentials(awsAccessKeyId, awsSecretKey)
     } else if (awsStsRoleArn.length > 0) {
       STSCredentials(awsStsRoleArn, awsStsSessionName)
-    } else {
+    } else if (awsUseInstanceProfile) {
       InstanceProfileCredentials
+    } else {
+      DefaultCredentials
     }
 
     new KinesisSource(
@@ -167,6 +171,9 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     val awsSecretKey = caseInsensitiveParams.get(AWS_SECRET_KEY).getOrElse("")
     val awsStsRoleArn = caseInsensitiveParams.get(AWS_STS_ROLE_ARN).getOrElse("")
     val awsStsSessionName = caseInsensitiveParams.get(AWS_STS_SESSION_NAME).getOrElse("")
+    val awsUseInstanceProfile = caseInsensitiveParams.getOrElse(AWS_USE_INSTANCE_PROFILE, "true")
+      .toBoolean
+
     val failOnDataLoss = caseInsensitiveParams.get(FAILONDATALOSS)
       .getOrElse("true").toBoolean
 
@@ -181,8 +188,10 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
       BasicCredentials(awsAccessKeyId, awsSecretKey)
     } else if (awsStsRoleArn.length > 0) {
       STSCredentials(awsStsRoleArn, awsStsSessionName)
-    } else {
+    } else if (awsUseInstanceProfile) {
       InstanceProfileCredentials
+    } else {
+      DefaultCredentials
     }
 
     new KinesisContinuousReader(
@@ -206,6 +215,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val AWS_SECRET_KEY = "awssecretkey"
   private[kinesis] val AWS_STS_ROLE_ARN = "awsstsrolearn"
   private[kinesis] val AWS_STS_SESSION_NAME = "awsstssessionname"
+  private[kinesis] val AWS_USE_INSTANCE_PROFILE = "awsuseinstanceprofile"
   private[kinesis] val STARTING_POSITION_KEY = "startingposition"
   private[kinesis] val FAILONDATALOSS = "failondataloss"
 
