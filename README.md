@@ -118,8 +118,11 @@ Refering $SPARK_HOME to the Spark installation directory.
 | ------------- |:-------------:| -----:|
 | streamName     | - | Name of the stream in Kinesis to read from |
 | endpointUrl     |   https://kinesis.us-east-1.amazonaws.com    |   end-point URL for Kinesis Stream|
-| awsAccessKeyId |    -     |    AWS Credentials for  Kinesis describe, read record operations|   
-| awsSecretKey |      -  |    AWS Credentials for  Kinesis describe, read record |
+| awsAccessKeyId |    -     |    AWS Credentials for Kinesis describe, read record operations |
+| awsSecretKey |      -  |    AWS Credentials for Kinesis describe, read record operations |
+| awsSTSRoleARN |      -  |    AWS STS Role ARN for Kinesis describe, read record operations |
+| awsSTSSessionName |      -  |    AWS STS Session name for Kinesis describe, read record operations |
+| awsUseInstanceProfile | true |    Use Instance Profile Credentials if none of credentials provided |
 | startingPosition |      LATEST |    Starting Position in Kinesis to fetch data from. Possible values are "latest", "trim_horizon", "earliest" (alias for trim_horizon)   |
 | failondataloss| true | fail the streaming job if any active shard is missing or expired
 | kinesis.executor.maxFetchTimeInMs |     1000 |  Maximum time spent in executor to fetch record from Kinesis per Shard |
@@ -137,6 +140,9 @@ Refering $SPARK_HOME to the Spark installation directory.
 | endpointUrl  | https://kinesis.us-east-1.amazonaws.com |  The aws endpoint of the kinesis Stream |
 | awsAccessKeyId |    -     |    AWS Credentials for  Kinesis describe, read record operations    
 | awsSecretKey |      -  |    AWS Credentials for  Kinesis describe, read record |
+| awsSTSRoleARN |      -  |    AWS STS Role ARN for Kinesis describe, read record operations |
+| awsSTSSessionName |      -  |    AWS STS Session name for Kinesis describe, read record operations |
+| awsUseInstanceProfile | true |    Use Instance Profile Credentials if none of credentials provided |
 | kinesis.executor.recordMaxBufferedTime | 1000 (millis) | Specify the maximum buffered time of a record |
 | kinesis.executor.maxConnections | 1 | Specify the maximum connections to Kinesis | 
 | kinesis.executor.aggregationEnabled | true | Specify if records should be aggregated before sending them to Kinesis | 

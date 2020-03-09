@@ -94,6 +94,9 @@ private[kinesis] object CachedKinesisProducer extends Logging {
     val awsStsSessionName = producerConfiguration.getOrElse(
       KinesisSourceProvider.AWS_STS_SESSION_NAME, "").toString
 
+    val awsUseInstanceProfile = producerConfiguration.getOrElse(
+      KinesisSourceProvider.AWS_USE_INSTANCE_PROFILE, "true").toBoolean
+
     val endpoint = producerConfiguration.getOrElse(
       KinesisSourceProvider.SINK_ENDPOINT_URL, KinesisSourceProvider.DEFAULT_KINESIS_ENDPOINT_URL)
       .toString
@@ -113,8 +116,10 @@ private[kinesis] object CachedKinesisProducer extends Logging {
       }
     } else if (awsStsRoleArn.length > 0) {
       STSCredentials(awsStsRoleArn, awsStsSessionName)
-    } else {
+    } else if (awsUseInstanceProfile) {
       InstanceProfileCredentials
+    } else {
+      DefaultCredentials
     }
 
     val kinesisProducer = new Producer(new KinesisProducerConfiguration()
