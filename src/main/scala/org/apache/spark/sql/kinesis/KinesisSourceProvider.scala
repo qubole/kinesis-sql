@@ -83,6 +83,7 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
 
     val awsAccessKeyId = caseInsensitiveParams.get(AWS_ACCESS_KEY_ID).getOrElse("")
     val awsSecretKey = caseInsensitiveParams.get(AWS_SECRET_KEY).getOrElse("")
+    val sessionToken = caseInsensitiveParams.get(AWS_SESSION_TOKEN).getOrElse("")
     val awsStsRoleArn = caseInsensitiveParams.get(AWS_STS_ROLE_ARN).getOrElse("")
     val awsStsSessionName = caseInsensitiveParams.get(AWS_STS_SESSION_NAME).getOrElse("")
 
@@ -97,7 +98,11 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     val initialPosition: KinesisPosition = getKinesisPosition(caseInsensitiveParams)
 
     val kinesisCredsProvider = if (awsAccessKeyId.length > 0) {
-      BasicCredentials(awsAccessKeyId, awsSecretKey)
+      if(sessionToken.length > 0) {
+        BasicAWSSessionCredentials(awsAccessKeyId, awsSecretKey, sessionToken)
+      } else {
+        BasicCredentials(awsAccessKeyId, awsSecretKey)
+      }
     } else if (awsStsRoleArn.length > 0) {
       STSCredentials(awsStsRoleArn, awsStsSessionName)
     } else {
@@ -165,6 +170,7 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
 
     val awsAccessKeyId = caseInsensitiveParams.get(AWS_ACCESS_KEY_ID).getOrElse("")
     val awsSecretKey = caseInsensitiveParams.get(AWS_SECRET_KEY).getOrElse("")
+    val sessionToken = caseInsensitiveParams.get(AWS_SESSION_TOKEN).getOrElse("")
     val awsStsRoleArn = caseInsensitiveParams.get(AWS_STS_ROLE_ARN).getOrElse("")
     val awsStsSessionName = caseInsensitiveParams.get(AWS_STS_SESSION_NAME).getOrElse("")
     val failOnDataLoss = caseInsensitiveParams.get(FAILONDATALOSS)
@@ -178,7 +184,11 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     val initialPosition: KinesisPosition = getKinesisPosition(caseInsensitiveParams)
 
     val kinesisCredsProvider = if (awsAccessKeyId.length > 0) {
-      BasicCredentials(awsAccessKeyId, awsSecretKey)
+      if(sessionToken.length > 0) {
+        BasicAWSSessionCredentials(awsAccessKeyId, awsSecretKey, sessionToken)
+      } else {
+        BasicCredentials(awsAccessKeyId, awsSecretKey)
+      }
     } else if (awsStsRoleArn.length > 0) {
       STSCredentials(awsStsRoleArn, awsStsSessionName)
     } else {
@@ -204,6 +214,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val REGION_NAME_KEY = "regionname"
   private[kinesis] val AWS_ACCESS_KEY_ID = "awsaccesskeyid"
   private[kinesis] val AWS_SECRET_KEY = "awssecretkey"
+  private[kinesis] val AWS_SESSION_TOKEN = "sessiontoken"
   private[kinesis] val AWS_STS_ROLE_ARN = "awsstsrolearn"
   private[kinesis] val AWS_STS_SESSION_NAME = "awsstssessionname"
   private[kinesis] val STARTING_POSITION_KEY = "startingposition"
