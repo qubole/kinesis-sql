@@ -140,6 +140,9 @@ Refering $SPARK_HOME to the Spark installation directory.
 | endpointUrl  | https://kinesis.us-east-1.amazonaws.com |  The aws endpoint of the kinesis Stream |
 | awsAccessKeyId |    -     |    AWS Credentials for  Kinesis describe, read record operations    
 | awsSecretKey |      -  |    AWS Credentials for  Kinesis describe, read record |
+| awsSTSRoleARN |      -  |    AWS STS Role ARN for Kinesis describe, read record operations |
+| awsSTSSessionName |      -  |    AWS STS Session name for Kinesis describe, read record operations |
+| awsUseInstanceProfile | true |    Use Instance Profile Credentials if none of credentials provided |
 | kinesis.executor.recordMaxBufferedTime | 1000 (millis) | Specify the maximum buffered time of a record |
 | kinesis.executor.maxConnections | 1 | Specify the maximum connections to Kinesis | 
 | kinesis.executor.aggregationEnabled | true | Specify if records should be aggregated before sending them to Kinesis | 
