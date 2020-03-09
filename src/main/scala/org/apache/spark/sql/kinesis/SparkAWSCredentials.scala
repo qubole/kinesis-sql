@@ -68,6 +68,21 @@ private[kinesis] final case class BasicCredentials(
   }
 }
 
+private[kinesis] final case class BasicAWSSessionCredentials(
+    awsAccessKeyId: String,
+    awsSecretKey: String, 
+    sessionToken: String) extends SparkAWSCredentials with Logging {
+
+  def provider: AWSCredentialsProvider = try {
+    new AWSStaticCredentialsProvider(new BasicSessionCredentials(awsAccessKeyId, awsSecretKey, sessionToken))
+  } catch {
+    case e: IllegalArgumentException =>
+      logWarning("Unable to construct AWSStaticCredentialsProvider with provided keyparir; " +
+        "falling back to DefaultCredentialsProviderChain.", e)
+      new DefaultAWSCredentialsProviderChain
+  }
+}
+
 /**
  * Returns an STSAssumeRoleSessionCredentialsProvider instance which assumes an IAM
  * role in order to authenticate against resources in an external account.
@@ -99,6 +114,7 @@ object SparkAWSCredentials {
   class Builder {
     private var basicCreds: Option[BasicCredentials] = None
     private var stsCreds: Option[STSCredentials] = None
+    private var basicSessionCreds: Option[BasicSessionCredentials] = None
 
     // scalastyle:off
     /**
@@ -118,6 +134,26 @@ object SparkAWSCredentials {
       basicCreds = Option(BasicCredentials(
         awsAccessKeyId = accessKeyId,
         awsSecretKey = secretKey))
+      this
+    }
+
+
+    // scalastyle:off
+    /**
+     * Use a shortlived aws key pair plus security token for short-term authentication
+     *
+     *
+     * @param accessKeyId AWS access key ID
+     * @param secretKey AWS secret key
+     * @param securityToken AWS Security Token 
+     * @return Reference to this [[SparkAWSCredentials.Builder]]
+     */
+    // scalastyle:on
+    def basicSessionCredentials(accessKeyId: String, secretKey: String, securityToken: String): Builder = {
+      basicSessionCreds = Option(new BasicSessionCredentials(
+        accessKeyId,
+        secretKey,
+        securityToken))
       this
     }
 
