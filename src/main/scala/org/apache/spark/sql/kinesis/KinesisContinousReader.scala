@@ -47,7 +47,7 @@ import org.apache.spark.util.Utils
 class KinesisContinuousReader(
                                sourceOptions: Map[String, String],
                                streamName: String,
-                               initialPosition: KinesisPosition,
+                               initialPosition: InitialKinesisPosition,
                                endPointURL: String,
                                kinesisCredsProvider: SparkAWSCredentials,
                                failOnDataLoss: Boolean = true)
