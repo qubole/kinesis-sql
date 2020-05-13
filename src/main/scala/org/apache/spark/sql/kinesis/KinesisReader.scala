@@ -234,6 +234,12 @@ private[kinesis] case class KinesisReader(
               logWarning(s"Error while $message [attempt = ${retryCount + 1}]", lee)
             case ae: AbortedException =>
               logWarning(s"Error while $message [attempt = ${retryCount + 1}]", ae)
+            case ake: AmazonKinesisException =>
+              if (ake.getStatusCode() >= 500) {
+                logWarning(s"Error while $message [attempt = ${retryCount + 1}]", ake)
+              } else {
+                throw new IllegalStateException(s"Error while $message", ake)
+              }
             case e: Throwable =>
               throw new IllegalStateException(s"Error while $message", e)
           }
