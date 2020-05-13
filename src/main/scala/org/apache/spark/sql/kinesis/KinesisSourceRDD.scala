@@ -121,7 +121,16 @@ private[kinesis] class KinesisSourceRDD(
     val recordPerRequest =
       sourceOptions.getOrElse("executor.maxRecordPerRead".toLowerCase(Locale.ROOT), "10000").toInt
 
+    val enableIdleTimeBetweenReads: Boolean =
+      sourceOptions.getOrElse("executor.addIdleTimeBetweenReads".toLowerCase(Locale.ROOT),
+        "false").toBoolean
+
+    val idleTimeBetweenReads =
+      sourceOptions.getOrElse("executor.idleTimeBetweenReadsInMs".toLowerCase(Locale.ROOT),
+        "1000").toLong
+
     val startTimestamp: Long = System.currentTimeMillis
+    var lastReadTimeMs: Long = 0
     var lastReadSequenceNumber: String = ""
     var numRecordRead: Long = 0
     var hasShardClosed = false
@@ -169,6 +178,16 @@ private[kinesis] class KinesisSourceRDD(
         }
       }
 
+      def addDelayInFetchingRecords(currentTimestamp: Long): Unit = {
+        if ( enableIdleTimeBetweenReads && lastReadTimeMs > 0 ) {
+          val delayMs: Long = idleTimeBetweenReads - (currentTimestamp - lastReadTimeMs)
+          if (delayMs > 0) {
+            logInfo(s"Sleeping for ${delayMs}ms")
+            Thread.sleep(delayMs)
+          }
+        }
+      }
+
       override def getNext(): Record = {
         if (fetchedRecords.length == 0 || currentIndex >= fetchedRecords.length) {
           fetchedRecords = Array.empty
@@ -179,12 +198,14 @@ private[kinesis] class KinesisSourceRDD(
               // getShardIterator() should raise exception if its null if failOnDataLoss is true
               // if failOnDataLoss is false, getShardIterator() will be null and we should stop
               // fetching more records
+              addDelayInFetchingRecords(currentTimestamp)
               val records: GetRecordsResult = kinesisReader.getKinesisRecords(
                 _shardIterator, recordPerRequest)
               // de-aggregate records
               val deaggregateRecords = kinesisReader.deaggregateRecords(records.getRecords, null)
               fetchedRecords = deaggregateRecords.asScala.toArray
               _shardIterator = records.getNextShardIterator
+              lastReadTimeMs = System.currentTimeMillis()
               logDebug(s"Milli secs behind is ${records.getMillisBehindLatest.longValue()}")
               if ( _shardIterator == null ) {
                 hasShardClosed = true

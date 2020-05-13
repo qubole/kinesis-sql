@@ -26,11 +26,11 @@ import com.amazonaws.AbortedException
 import com.amazonaws.services.kinesis.AmazonKinesisClient
 import com.amazonaws.services.kinesis.clientlibrary.types.UserRecord
 import com.amazonaws.services.kinesis.model.{DescribeStreamRequest, GetRecordsRequest, Shard, _}
-
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
+
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types._
 import org.apache.spark.util.{ThreadUtils, UninterruptibleThread}
@@ -67,6 +67,10 @@ private[kinesis] case class KinesisReader(
 
   private val offsetFetchAttemptIntervalMs =
     readerOptions.getOrElse("client.retryIntervalMs".toLowerCase(Locale.ROOT), "1000").toLong
+
+  private val maxRetryIntervalMs: Long = {
+    readerOptions.getOrElse("client.maxRetryIntervalMs".toLowerCase(Locale.ROOT), "10000").toLong
+  }
 
   private val maxSupportedShardsPerStream = 100
 
@@ -223,14 +227,12 @@ private[kinesis] case class KinesisReader(
     var lastError: Throwable = null
     var waitTimeInterval = offsetFetchAttemptIntervalMs
 
-    def isTimedOut = (System.currentTimeMillis() - startTimeMs) >= offsetFetchAttemptIntervalMs
-
     def isMaxRetryDone = retryCount >= maxOffsetFetchAttempts
 
-    while (result.isEmpty && !isTimedOut && !isMaxRetryDone) {
+    while (result.isEmpty && !isMaxRetryDone) {
       if ( retryCount > 0 ) { // wait only if this is a retry
         Thread.sleep(waitTimeInterval)
-        waitTimeInterval *= 2 // if you have waited, then double wait time for next round
+        waitTimeInterval = scala.math.min(waitTimeInterval * 2, maxRetryIntervalMs)
       }
       try {
         result = Some(body)
@@ -257,14 +259,8 @@ private[kinesis] case class KinesisReader(
       retryCount += 1
     }
     result.getOrElse {
-      if (isTimedOut ) {
-        throw new IllegalStateException(
-          s"Timed out after ${offsetFetchAttemptIntervalMs} ms while " +
-            s"$message, last exception: ", lastError)
-      } else {
-        throw new IllegalStateException(
-          s"Gave up after $retryCount retries while $message, last exception: ", lastError)
-      }
+      throw new IllegalStateException(
+        s"Gave up after $retryCount retries while $message, last exception: ", lastError)
     }
   }
 
