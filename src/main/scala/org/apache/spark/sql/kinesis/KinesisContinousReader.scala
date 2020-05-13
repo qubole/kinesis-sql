@@ -50,7 +50,8 @@ class KinesisContinuousReader(
                                streamName: String,
                                initialPosition: KinesisPosition,
                                endPointURL: String,
-                               kinesisCredsProvider: SparkAWSCredentials)
+                               kinesisCredsProvider: SparkAWSCredentials,
+                               failOnDataLoss: Boolean = true)
   extends ContinuousReader with Logging {
 
   private var currentShardOffsets: ShardOffsets = _
@@ -78,7 +79,8 @@ class KinesisContinuousReader(
       .getOrElse {
         val latestShards = kinesisReader.getShards()
         val latestShardInfo: Seq[ShardInfo] = if (latestShards.nonEmpty) {
-          ShardSyncer.getLatestShardInfo(latestShards, Seq.empty[ShardInfo], initialPosition)
+          ShardSyncer.getLatestShardInfo(
+            latestShards, Seq.empty[ShardInfo], initialPosition, failOnDataLoss)
         } else {
           Seq.empty[ShardInfo]
         }
@@ -106,7 +108,8 @@ class KinesisContinuousReader(
       val syncedShardInfo: Seq[ShardInfo] = getLatestShardInfo(
         latestShards,
         prevShardsInfo,
-        initialPosition)
+        initialPosition,
+        failOnDataLoss)
 
       // In Continuous processing we are unable to find out about a closed shards
       // using previous information. So we need to check if a shard is closed
