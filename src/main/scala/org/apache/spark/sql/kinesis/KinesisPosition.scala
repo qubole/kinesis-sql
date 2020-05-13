@@ -79,7 +79,7 @@ private[kinesis] object KinesisPosition {
  * @param defaultPosition position that is used for shard that is requested but not present in map
  */
 private[kinesis] class InitialKinesisPosition(shardPositions: Map[String, KinesisPosition],
-                                              defaultPosition: KinesisPosition = new Latest())
+                                              defaultPosition: KinesisPosition)
   extends Serializable {
 
   def shardPosition(shardId: String): KinesisPosition =
@@ -118,13 +118,14 @@ private[kinesis] object InitialKinesisPosition {
    * @param text JSON representation of Kinesis position.
    * @return
    */
-  def fromCheckpointJson(text: String): InitialKinesisPosition = {
+  def fromCheckpointJson(text: String, defaultPosition: KinesisPosition): InitialKinesisPosition = {
     val kso = KinesisSourceOffset(text)
     val shardOffsets = kso.shardsToOffsets
 
     new InitialKinesisPosition(
       shardOffsets.shardInfoMap
-        .map(si => si._1 -> KinesisPosition.make(si._2.iteratorType, si._2.iteratorPosition))
+        .map(si => si._1 -> KinesisPosition.make(si._2.iteratorType, si._2.iteratorPosition)),
+      defaultPosition
       )
   }
 }
