@@ -83,27 +83,39 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
 
     val awsAccessKeyId = caseInsensitiveParams.get(AWS_ACCESS_KEY_ID).getOrElse("")
     val awsSecretKey = caseInsensitiveParams.get(AWS_SECRET_KEY).getOrElse("")
+    val sessionToken = caseInsensitiveParams.get(AWS_SESSION_TOKEN).getOrElse("")
     val awsStsRoleArn = caseInsensitiveParams.get(AWS_STS_ROLE_ARN).getOrElse("")
     val awsStsSessionName = caseInsensitiveParams.get(AWS_STS_SESSION_NAME).getOrElse("")
+    val awsUseInstanceProfile = caseInsensitiveParams.getOrElse(AWS_USE_INSTANCE_PROFILE, "true")
+      .toBoolean
 
     val regionName = caseInsensitiveParams.get(REGION_NAME_KEY)
       .getOrElse(DEFAULT_KINESIS_REGION_NAME)
     val endPointURL = caseInsensitiveParams.get(END_POINT_URL)
       .getOrElse(DEFAULT_KINESIS_ENDPOINT_URL)
 
-    val initialPosition: KinesisPosition = getKinesisPosition(caseInsensitiveParams)
+    val failOnDataLoss = caseInsensitiveParams.get(FAILONDATALOSS)
+      .getOrElse("true").toBoolean
+
+    val initialPosition: InitialKinesisPosition = getKinesisPosition(caseInsensitiveParams)
 
     val kinesisCredsProvider = if (awsAccessKeyId.length > 0) {
-      BasicCredentials(awsAccessKeyId, awsSecretKey)
+      if(sessionToken.length > 0) {
+        BasicAWSSessionCredentials(awsAccessKeyId, awsSecretKey, sessionToken)
+      } else {
+        BasicCredentials(awsAccessKeyId, awsSecretKey)
+      }
     } else if (awsStsRoleArn.length > 0) {
       STSCredentials(awsStsRoleArn, awsStsSessionName)
-    } else {
+    } else if (awsUseInstanceProfile) {
       InstanceProfileCredentials
+    } else {
+      DefaultCredentials
     }
 
     new KinesisSource(
       sqlContext, specifiedKinesisParams, metadataPath,
-      streamName, initialPosition, endPointURL, kinesisCredsProvider)
+      streamName, initialPosition, endPointURL, kinesisCredsProvider, failOnDataLoss)
   }
 
   private def validateStreamOptions(caseInsensitiveParams: Map[String, String]) = {
@@ -162,22 +174,34 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
 
     val awsAccessKeyId = caseInsensitiveParams.get(AWS_ACCESS_KEY_ID).getOrElse("")
     val awsSecretKey = caseInsensitiveParams.get(AWS_SECRET_KEY).getOrElse("")
+    val sessionToken = caseInsensitiveParams.get(AWS_SESSION_TOKEN).getOrElse("")
     val awsStsRoleArn = caseInsensitiveParams.get(AWS_STS_ROLE_ARN).getOrElse("")
     val awsStsSessionName = caseInsensitiveParams.get(AWS_STS_SESSION_NAME).getOrElse("")
+    val awsUseInstanceProfile = caseInsensitiveParams.getOrElse(AWS_USE_INSTANCE_PROFILE, "true")
+      .toBoolean
+
+    val failOnDataLoss = caseInsensitiveParams.get(FAILONDATALOSS)
+      .getOrElse("true").toBoolean
 
     val regionName = caseInsensitiveParams.get(REGION_NAME_KEY)
       .getOrElse(DEFAULT_KINESIS_REGION_NAME)
     val endPointURL = caseInsensitiveParams.get(END_POINT_URL)
       .getOrElse(DEFAULT_KINESIS_ENDPOINT_URL)
 
-    val initialPosition: KinesisPosition = getKinesisPosition(caseInsensitiveParams)
+    val initialPosition: InitialKinesisPosition = getKinesisPosition(caseInsensitiveParams)
 
     val kinesisCredsProvider = if (awsAccessKeyId.length > 0) {
-      BasicCredentials(awsAccessKeyId, awsSecretKey)
+      if(sessionToken.length > 0) {
+        BasicAWSSessionCredentials(awsAccessKeyId, awsSecretKey, sessionToken)
+      } else {
+        BasicCredentials(awsAccessKeyId, awsSecretKey)
+      }
     } else if (awsStsRoleArn.length > 0) {
       STSCredentials(awsStsRoleArn, awsStsSessionName)
-    } else {
+    } else if (awsUseInstanceProfile) {
       InstanceProfileCredentials
+    } else {
+      DefaultCredentials
     }
 
     new KinesisContinuousReader(
@@ -185,7 +209,8 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
       streamName,
       initialPosition,
       endPointURL,
-      kinesisCredsProvider)
+      kinesisCredsProvider,
+      failOnDataLoss)
 
   }
 
@@ -198,9 +223,13 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val REGION_NAME_KEY = "regionname"
   private[kinesis] val AWS_ACCESS_KEY_ID = "awsaccesskeyid"
   private[kinesis] val AWS_SECRET_KEY = "awssecretkey"
+  private[kinesis] val AWS_SESSION_TOKEN = "sessiontoken"
   private[kinesis] val AWS_STS_ROLE_ARN = "awsstsrolearn"
   private[kinesis] val AWS_STS_SESSION_NAME = "awsstssessionname"
+  private[kinesis] val AWS_USE_INSTANCE_PROFILE = "awsuseinstanceprofile"
   private[kinesis] val STARTING_POSITION_KEY = "startingposition"
+  private[kinesis] val FAILONDATALOSS = "failondataloss"
+
   private[kinesis] val DESCRIBE_SHARD_INTERVAL = "client.describeshardinterval"
 
   // Sink Options
@@ -212,17 +241,18 @@ private[kinesis] object KinesisSourceProvider extends Logging {
 
 
   private[kinesis] def getKinesisPosition(
-      params: Map[String, String]): KinesisPosition = {
-    // TODO Support custom shards positions
+      params: Map[String, String]): InitialKinesisPosition = {
     val CURRENT_TIMESTAMP = System.currentTimeMillis
     params.get(STARTING_POSITION_KEY).map(_.trim) match {
       case Some(position) if position.toLowerCase(Locale.ROOT) == "latest" =>
-        new AtTimeStamp(CURRENT_TIMESTAMP)
+        InitialKinesisPosition.fromPredefPosition(new AtTimeStamp(CURRENT_TIMESTAMP))
       case Some(position) if position.toLowerCase(Locale.ROOT) == "trim_horizon" =>
-        new TrimHorizon
+        InitialKinesisPosition.fromPredefPosition(new TrimHorizon)
       case Some(position) if position.toLowerCase(Locale.ROOT) == "earliest" =>
-        new TrimHorizon
-      case None => new AtTimeStamp(CURRENT_TIMESTAMP)
+        InitialKinesisPosition.fromPredefPosition(new TrimHorizon)
+      case Some(json) =>
+        InitialKinesisPosition.fromCheckpointJson(json, new AtTimeStamp(CURRENT_TIMESTAMP))
+      case None => InitialKinesisPosition.fromPredefPosition(new AtTimeStamp(CURRENT_TIMESTAMP))
     }
   }
 

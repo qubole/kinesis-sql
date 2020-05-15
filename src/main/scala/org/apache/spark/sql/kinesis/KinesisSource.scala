@@ -54,9 +54,10 @@ private[kinesis] class KinesisSource(
     sourceOptions: Map[String, String],
     metadataPath: String,
     streamName: String,
-    initialPosition: KinesisPosition,
+    initialPosition: InitialKinesisPosition,
     endPointURL: String,
-    kinesisCredsProvider: SparkAWSCredentials
+    kinesisCredsProvider: SparkAWSCredentials,
+    failOnDataLoss: Boolean = true
     )
   extends Source with Serializable with Logging {
 
@@ -114,6 +115,11 @@ private[kinesis] class KinesisSource(
     sourceOptions
   }
 
+  def getFailOnDataLoss(): Boolean = {
+    // This function is used for testing
+    failOnDataLoss
+  }
+
   /** Makes an API call to get one record for a shard. Return true if the call is successful  */
   def hasNewData(shardInfo: ShardInfo): Boolean = {
     val shardIterator = kinesisReader.getShardIterator(
@@ -128,7 +134,7 @@ private[kinesis] class KinesisSource(
   def canCreateNewBatch(shardsInfo: Array[ShardInfo]): Boolean = {
     var shardsInfoToCheck = shardsInfo.par
     val threadPoolSize = Math.min(maxParallelThreads, shardsInfoToCheck.size)
-    val evalPool = ThreadUtils.newForkJoinPool("DeleteFiles", threadPoolSize)
+    val evalPool = ThreadUtils.newForkJoinPool("checkCreateNewBatch", threadPoolSize)
     shardsInfoToCheck.tasksupport = new ForkJoinTaskSupport(evalPool)
     val hasRecords = new AtomicBoolean(false)
     try {
@@ -162,7 +168,8 @@ private[kinesis] class KinesisSource(
         || ((latestDescribeShardTimestamp + describeShardInterval) < System.currentTimeMillis())) {
         val latestShards = kinesisReader.getShards()
         latestDescribeShardTimestamp = System.currentTimeMillis()
-        ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo, initialPosition)
+        ShardSyncer.getLatestShardInfo(latestShards, prevShardsInfo,
+          initialPosition, failOnDataLoss)
       } else {
         prevShardsInfo
       }
@@ -172,6 +179,7 @@ private[kinesis] class KinesisSource(
         || prevBatchId < 0
         || hasShardEndAsOffset(latestShardInfo)
         || ShardSyncer.hasNewShards(prevShardsInfo, latestShardInfo)
+        || ShardSyncer.hasDeletedShards(prevShardsInfo, latestShardInfo)
         || canCreateNewBatch(latestShardInfo)) {
       currentShardOffsets = Some(new ShardOffsets(prevBatchId + 1, streamName, latestShardInfo))
     } else {
@@ -213,7 +221,8 @@ private[kinesis] class KinesisSource(
       kinesisCredsProvider,
       endPointURL,
       hadoopConf(sqlContext),
-      metadataPath)
+      metadataPath,
+      failOnDataLoss)
 
     val rdd = kinesisSourceRDD.map { r: Record =>
       InternalRow(

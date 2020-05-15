@@ -68,6 +68,10 @@ private[kinesis] case class KinesisReader(
   private val offsetFetchAttemptIntervalMs =
     readerOptions.getOrElse("client.retryIntervalMs".toLowerCase(Locale.ROOT), "1000").toLong
 
+  private val maxRetryIntervalMs: Long = {
+    readerOptions.getOrElse("client.maxRetryIntervalMs".toLowerCase(Locale.ROOT), "10000").toLong
+  }
+
   private val maxSupportedShardsPerStream = 100
 
   private var _amazonClient: AmazonKinesisClient = null
@@ -98,7 +102,8 @@ private[kinesis] case class KinesisReader(
 
   def getShardIterator(shardId: String,
                        iteratorType: String,
-                       iteratorPosition: String): String = {
+                       iteratorPosition: String,
+                       failOnDataLoss: Boolean = true): String = {
 
     val getShardIteratorRequest = new GetShardIteratorRequest
     getShardIteratorRequest.setShardId(shardId)
@@ -115,13 +120,22 @@ private[kinesis] case class KinesisReader(
       getShardIteratorRequest.setTimestamp(new java.util.Date(iteratorPosition.toLong))
     }
 
-    val getShardIteratorResult: GetShardIteratorResult = runUninterruptibly {
+    runUninterruptibly {
       retryOrTimeout[GetShardIteratorResult](
         s"Fetching Shard Iterator") {
-        getAmazonClient.getShardIterator(getShardIteratorRequest)
+        try {
+          getAmazonClient.getShardIterator(getShardIteratorRequest)
+        } catch {
+          case r: ResourceNotFoundException =>
+            if (!failOnDataLoss) {
+              new GetShardIteratorResult()
+            }
+            else {
+              throw r
+            }
+        }
       }
-    }
-    getShardIteratorResult.getShardIterator
+    }.getShardIterator
   }
 
 
@@ -213,14 +227,12 @@ private[kinesis] case class KinesisReader(
     var lastError: Throwable = null
     var waitTimeInterval = offsetFetchAttemptIntervalMs
 
-    def isTimedOut = (System.currentTimeMillis() - startTimeMs) >= offsetFetchAttemptIntervalMs
-
     def isMaxRetryDone = retryCount >= maxOffsetFetchAttempts
 
-    while (result.isEmpty && !isTimedOut && !isMaxRetryDone) {
+    while (result.isEmpty && !isMaxRetryDone) {
       if ( retryCount > 0 ) { // wait only if this is a retry
         Thread.sleep(waitTimeInterval)
-        waitTimeInterval *= 2 // if you have waited, then double wait time for next round
+        waitTimeInterval = scala.math.min(waitTimeInterval * 2, maxRetryIntervalMs)
       }
       try {
         result = Some(body)
@@ -234,6 +246,12 @@ private[kinesis] case class KinesisReader(
               logWarning(s"Error while $message [attempt = ${retryCount + 1}]", lee)
             case ae: AbortedException =>
               logWarning(s"Error while $message [attempt = ${retryCount + 1}]", ae)
+            case ake: AmazonKinesisException =>
+              if (ake.getStatusCode() >= 500) {
+                logWarning(s"Error while $message [attempt = ${retryCount + 1}]", ake)
+              } else {
+                throw new IllegalStateException(s"Error while $message", ake)
+              }
             case e: Throwable =>
               throw new IllegalStateException(s"Error while $message", e)
           }
@@ -241,18 +259,13 @@ private[kinesis] case class KinesisReader(
       retryCount += 1
     }
     result.getOrElse {
-      if (isTimedOut ) {
-        throw new IllegalStateException(
-          s"Timed out after ${offsetFetchAttemptIntervalMs} ms while " +
-            s"$message, last exception: ", lastError)
-      } else {
-        throw new IllegalStateException(
-          s"Gave up after $retryCount retries while $message, last exception: ", lastError)
-      }
+      throw new IllegalStateException(
+        s"Gave up after $retryCount retries while $message, last exception: ", lastError)
     }
   }
 
 }
+
 
 private [kinesis]  object KinesisReader {
 
