@@ -54,7 +54,7 @@ private[kinesis] class KinesisSource(
     sourceOptions: Map[String, String],
     metadataPath: String,
     streamName: String,
-    initialPosition: KinesisPosition,
+    initialPosition: InitialKinesisPosition,
     endPointURL: String,
     kinesisCredsProvider: SparkAWSCredentials,
     failOnDataLoss: Boolean = true

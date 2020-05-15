@@ -29,14 +29,16 @@ class ShardSyncerSuite extends SparkFunSuite with SharedSQLContext {
 
   test("Should error out when failondataloss is true and a shard is deleted") {
     val ex = intercept[ IllegalStateException ] {
-      ShardSyncer.getLatestShardInfo(latestShards, prevShardInfo, new TrimHorizon, true)
+      ShardSyncer.getLatestShardInfo(latestShards, prevShardInfo,
+        InitialKinesisPosition.fromPredefPosition(new TrimHorizon), true)
     }
   }
 
   test("Should error out when failondataloss is false and a shard is deleted") {
     val expectedShardInfo = Seq(new ShardInfo("Shard1", new TrimHorizon))
     val latest: Seq[ShardInfo] = ShardSyncer.getLatestShardInfo(
-      latestShards, prevShardInfo, new TrimHorizon, false)
+      latestShards, prevShardInfo, InitialKinesisPosition.fromPredefPosition(new TrimHorizon),
+      false)
     assert(latest.nonEmpty)
     assert(latest(0).shardId === "Shard1")
     assert(latest(0).iteratorType === new TrimHorizon().iteratorType )

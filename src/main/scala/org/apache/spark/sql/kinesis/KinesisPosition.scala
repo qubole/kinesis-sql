@@ -17,6 +17,9 @@
 
 package org.apache.spark.sql.kinesis
 
+import org.json4s.NoTypeHints
+import org.json4s.jackson.Serialization
+
 trait KinesisPosition extends Serializable {
   val iteratorType: String
   val iteratorPosition: String
@@ -34,7 +37,10 @@ class Latest() extends KinesisPosition {
   override val iteratorPosition = ""
 }
 
-class AtTimeStamp(timestamp: Long) extends KinesisPosition {
+class AtTimeStamp(timestamp: String) extends KinesisPosition {
+  def this(timestamp: Long) {
+    this(timestamp.toString)
+  }
   override val iteratorType = "AT_TIMESTAMP"
   override val iteratorPosition = timestamp.toString
 }
@@ -52,4 +58,74 @@ class AtSequenceNumber(seqNumber: String) extends KinesisPosition {
 class ShardEnd() extends KinesisPosition {
   override val iteratorType = "SHARD_END"
   override val iteratorPosition = ""
+}
+
+private[kinesis] object KinesisPosition {
+  def make(iteratorType: String, iteratorPosition: String): KinesisPosition = iteratorType match {
+    case iterType if "TRIM_HORIZON".equalsIgnoreCase(iterType) => new TrimHorizon()
+    case iterType if "LATEST".equalsIgnoreCase(iterType) => new Latest()
+    case iterType if "AT_TIMESTAMP".equalsIgnoreCase(iterType) => new AtTimeStamp(iteratorPosition)
+    case iterType if "AT_SEQUENCE_NUMBER".equalsIgnoreCase(iterType) =>
+      new AtSequenceNumber(iteratorPosition)
+    case iterType if "AFTER_SEQUENCE_NUMBER".equalsIgnoreCase(iterType) =>
+      new AfterSequenceNumber(iteratorPosition)
+    case iterType if "SHARD_END".equalsIgnoreCase(iterType) => new ShardEnd()
+  }
+}
+
+/**
+ * Specifies initial position in Kenesis to start read from on the application startup.
+ * @param shardPositions map of shardId->KinesisPosition
+ * @param defaultPosition position that is used for shard that is requested but not present in map
+ */
+private[kinesis] class InitialKinesisPosition(shardPositions: Map[String, KinesisPosition],
+                                              defaultPosition: KinesisPosition)
+  extends Serializable {
+
+  def shardPosition(shardId: String): KinesisPosition =
+    shardPositions.getOrElse(shardId, defaultPosition)
+
+  override def toString: String = s"InitialKinesisPosition($shardPositions)"
+}
+
+private[kinesis] object InitialKinesisPosition {
+  implicit val format = Serialization.formats(NoTypeHints)
+
+  def fromPredefPosition(pos: KinesisPosition): InitialKinesisPosition =
+    new InitialKinesisPosition(Map(), pos)
+
+  /**
+   * Parses json representation on Kinesis position.
+   * It is useful if Kinesis position is persisted explicitly (e.g. at the end of the batch)
+   * and used to continue reading records from the same position on Spark application redeploy.
+   * Kinesis position JSON representation example:
+   * {{{
+   * {
+   *   "shardId-000000000001":{
+   *     "iteratorType":"AFTER_SEQUENCE_NUMBER",
+   *     "iteratorPosition":"49605240428222307037115827613554798409561082419642105874"
+   *   },
+   *   "metadata":{
+   *     "streamName":"my.cool.stream2",
+   *     "batchId":"7"
+   *   },
+   *   "shardId-000000000000":{
+   *     "iteratorType":"AFTER_SEQUENCE_NUMBER",
+   *     "iteratorPosition":"49605240428200006291917297020490128157480794051565322242"
+   *   }
+   * }
+   * }}}
+   * @param text JSON representation of Kinesis position.
+   * @return
+   */
+  def fromCheckpointJson(text: String, defaultPosition: KinesisPosition): InitialKinesisPosition = {
+    val kso = KinesisSourceOffset(text)
+    val shardOffsets = kso.shardsToOffsets
+
+    new InitialKinesisPosition(
+      shardOffsets.shardInfoMap
+        .map(si => si._1 -> KinesisPosition.make(si._2.iteratorType, si._2.iteratorPosition)),
+      defaultPosition
+      )
+  }
 }

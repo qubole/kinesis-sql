@@ -97,7 +97,7 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     val failOnDataLoss = caseInsensitiveParams.get(FAILONDATALOSS)
       .getOrElse("true").toBoolean
 
-    val initialPosition: KinesisPosition = getKinesisPosition(caseInsensitiveParams)
+    val initialPosition: InitialKinesisPosition = getKinesisPosition(caseInsensitiveParams)
 
     val kinesisCredsProvider = if (awsAccessKeyId.length > 0) {
       if(sessionToken.length > 0) {
@@ -188,7 +188,7 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
     val endPointURL = caseInsensitiveParams.get(END_POINT_URL)
       .getOrElse(DEFAULT_KINESIS_ENDPOINT_URL)
 
-    val initialPosition: KinesisPosition = getKinesisPosition(caseInsensitiveParams)
+    val initialPosition: InitialKinesisPosition = getKinesisPosition(caseInsensitiveParams)
 
     val kinesisCredsProvider = if (awsAccessKeyId.length > 0) {
       if(sessionToken.length > 0) {
@@ -241,17 +241,18 @@ private[kinesis] object KinesisSourceProvider extends Logging {
 
 
   private[kinesis] def getKinesisPosition(
-      params: Map[String, String]): KinesisPosition = {
-    // TODO Support custom shards positions
+      params: Map[String, String]): InitialKinesisPosition = {
     val CURRENT_TIMESTAMP = System.currentTimeMillis
     params.get(STARTING_POSITION_KEY).map(_.trim) match {
       case Some(position) if position.toLowerCase(Locale.ROOT) == "latest" =>
-        new AtTimeStamp(CURRENT_TIMESTAMP)
+        InitialKinesisPosition.fromPredefPosition(new AtTimeStamp(CURRENT_TIMESTAMP))
       case Some(position) if position.toLowerCase(Locale.ROOT) == "trim_horizon" =>
-        new TrimHorizon
+        InitialKinesisPosition.fromPredefPosition(new TrimHorizon)
       case Some(position) if position.toLowerCase(Locale.ROOT) == "earliest" =>
-        new TrimHorizon
-      case None => new AtTimeStamp(CURRENT_TIMESTAMP)
+        InitialKinesisPosition.fromPredefPosition(new TrimHorizon)
+      case Some(json) =>
+        InitialKinesisPosition.fromCheckpointJson(json, new AtTimeStamp(CURRENT_TIMESTAMP))
+      case None => InitialKinesisPosition.fromPredefPosition(new AtTimeStamp(CURRENT_TIMESTAMP))
     }
   }
 
