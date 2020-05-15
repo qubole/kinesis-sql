@@ -1,12 +1,33 @@
 Changelog
 =========
 
+
 (unreleased)
 ------------
 
-kinesis_2.11-1.1.3-spark_2.4 (2020-01-31)
-----------
+kinesis_2.11-1.1.4-spark_2.4
+----------------------------
+- Fix retries while making Kinesis API calls (#79) [Vikram Agrawal]
+- Adding ability to set exact Kinesis position to start reading from
+  (#78) [Stanislav Norochevskyi]
 
+  * Adding ability read initial Kinesis position from checkpoint JSON representation.
+
+  * Adding a unit test for InitialKinesisPosition parser
+- Apply retries to kinesis exceptions with status code >= 500 (#76)
+  [Arne Huang]
+- Make DefaultAWSCredentialsProviderChain available to choose (#71)
+  [Hyeonseop Lee]
+
+  * Add option to use instance profile credentials
+
+  * Update docs
+
+  * Add same option to producer
+- Added session based authentication (#72) [guoming-xu]
+- Add source and target java version to overwrite defaults; add nobootcp
+  option to scala compiler (#68) [Julian Keppel]
+- Update the artifact of the new release. [Vikram Agrawal]
 - [maven-release-plugin] prepare for next development iteration. [Vikram
   Agrawal]
 - Merge branch 'master' of github.com:qubole/kinesis-sql. [Vikram
@@ -14,17 +35,20 @@ kinesis_2.11-1.1.3-spark_2.4 (2020-01-31)
 - Update README.md. [Vikram Agrawal]
 - Update README.md. [Vikram Agrawal]
 - Update README.md. [Vikram Agrawal]
+
+kinesis_2.11-1.1.3-spark_2.4
+--------------------------------
 - [maven-release-plugin] prepare release spark-sql-
   kinesis_2.11-1.1.3-spark_2.4. [Vikram Agrawal]
+- GitChangelog RC file and changelog. [Vikram Agrawal]
 - Add travis build config. [Vikram Agrawal]
 - Create fat jar with dependencies shaded in the jar. [Vikram Agrawal]
 - Handle deleted shards (#59) [Vikram Agrawal]
-
-kinesis_2.11-1.1.2-spark_2.4 (2020-01-15)
-------------
-
 - [maven-release-plugin] prepare for next development iteration. [Vikram
   Agrawal]
+
+kinesis_2.11-1.1.2-spark_2.4
+-----------------------------
 - [maven-release-plugin] prepare release spark-sql-
   kinesis_2.11-1.1.2-spark_2.4. [Vikram Agrawal]
 - [maven-release-plugin] prepare for next development iteration. [Vikram
