@@ -238,6 +238,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME = "kinesis.executor.recordmaxbufferedtime"
   private[kinesis] val SINK_MAX_CONNECTIONS = "kinesis.executor.maxconnections"
   private[kinesis] val SINK_AGGREGATION_ENABLED = "kinesis.executor.aggregationenabled"
+  private[kinesis] val SINK_FLUSH_WAIT_TIME_MILLIS = "kniesis.executor.flushwaittimemillis"
 
 
   private[kinesis] def getKinesisPosition(
@@ -266,6 +267,8 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val DEFAULT_SINK_MAX_CONNECTIONS: String = "1"
 
   private[kinesis] val DEFAULT_SINK_AGGREGATION: String = "true"
+
+  private[kinesis] val DEFAULT_FLUSH_WAIT_TIME_MILLIS: String = "100"
 }
 
 

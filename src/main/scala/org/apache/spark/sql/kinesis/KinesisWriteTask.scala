@@ -18,6 +18,8 @@ package org.apache.spark.sql.kinesis
 
 import java.nio.ByteBuffer
 
+import scala.util.Try
+
 import com.amazonaws.services.kinesis.producer.{KinesisProducer, UserRecordResult}
 import com.google.common.util.concurrent.{FutureCallback, Futures}
 
@@ -34,9 +36,19 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
   private val streamName = producerConfiguration.getOrElse(
     KinesisSourceProvider.SINK_STREAM_NAME_KEY, "")
 
+  private val flushWaitTimeMills = Try(producerConfiguration.getOrElse(
+    KinesisSourceProvider.SINK_FLUSH_WAIT_TIME_MILLIS,
+    KinesisSourceProvider.DEFAULT_FLUSH_WAIT_TIME_MILLIS).toLong).getOrElse {
+    throw new IllegalArgumentException(
+      s"${KinesisSourceProvider.SINK_FLUSH_WAIT_TIME_MILLIS} has to be a positive integer")
+  }
+
+  private var failedWrite: Throwable = _
+
+
   def execute(iterator: Iterator[InternalRow]): Unit = {
     producer = CachedKinesisProducer.getOrCreate(producerConfiguration)
-    while (iterator.hasNext) {
+    while (iterator.hasNext && failedWrite == null) {
       val currentRow = iterator.next()
       val projectedRow = projection(currentRow)
       val partitionKey = projectedRow.getString(0)
@@ -54,7 +66,10 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
     val kinesisCallBack = new FutureCallback[UserRecordResult]() {
 
       override def onFailure(t: Throwable): Unit = {
-        logError(s"Writing to  $streamName failed due to ${t.getCause}")
+        if (failedWrite == null && t!= null) {
+          failedWrite = t
+          logError(s"Writing to  $streamName failed due to ${t.getCause}")
+        }
       }
 
       override def onSuccess(result: UserRecordResult): Unit = {
@@ -68,11 +83,32 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
     sentSeqNumbers
   }
 
-  def close(): Unit = {
+  private def flushRecordsIfNecessary(): Unit = {
     if (producer != null) {
-      producer.flush()
-      producer = null
+      while (producer.getOutstandingRecordsCount > 0) {
+        try {
+          producer.flush()
+          Thread.sleep(flushWaitTimeMills)
+          checkForErrors()
+        } catch {
+          case e: InterruptedException =>
+
+        }
+      }
     }
+  }
+
+  def checkForErrors(): Unit = {
+    if (failedWrite != null) {
+      throw failedWrite
+    }
+  }
+
+  def close(): Unit = {
+    checkForErrors()
+    flushRecordsIfNecessary()
+    checkForErrors()
+    producer = null
   }
 
   private def createProjection: UnsafeProjection = {
