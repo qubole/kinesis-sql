@@ -242,8 +242,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val SINK_SINK_BUNDLE_RECORDS = "kinesis.executor.sink.bundle.records"
 
 
-  private[kinesis] def getKinesisPosition(
-                                           params: Map[String, String]): InitialKinesisPosition = {
+  private[kinesis] def getKinesisPosition(params: Map[String, String]): InitialKinesisPosition = {
     val CURRENT_TIMESTAMP = System.currentTimeMillis
     params.get(STARTING_POSITION_KEY).map(_.trim) match {
       case Some(position) if position.toLowerCase(Locale.ROOT) == "latest" =>
