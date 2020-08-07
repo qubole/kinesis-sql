@@ -239,7 +239,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val SINK_MAX_CONNECTIONS = "kinesis.executor.maxconnections"
   private[kinesis] val SINK_AGGREGATION_ENABLED = "kinesis.executor.aggregationenabled"
   private[kinesis] val SINK_FLUSH_WAIT_TIME_MILLIS = "kinesis.executor.flushwaittimemillis"
-  private[kinesis] val SINK_SINK_BUNDLE_RECORDS = "kinesis.executor.sink.bundle.records"
+  private[kinesis] val SINK_BUNDLE_RECORDS = "kinesis.executor.sink.bundle.records"
 
 
   private[kinesis] def getKinesisPosition(params: Map[String, String]): InitialKinesisPosition = {

@@ -44,10 +44,10 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
   }
 
   private val sinKBundleRecords = Try(producerConfiguration.getOrElse(
-    KinesisSourceProvider.SINK_SINK_BUNDLE_RECORDS,
+    KinesisSourceProvider.SINK_BUNDLE_RECORDS,
     KinesisSourceProvider.DEFAULT_SINK_BUNDLE_RECORDS).toBoolean).getOrElse {
     throw new IllegalArgumentException(
-      s"${KinesisSourceProvider.SINK_SINK_BUNDLE_RECORDS} has to be a boolean value")
+      s"${KinesisSourceProvider.SINK_BUNDLE_RECORDS} has to be a boolean value")
   }
 
   private var failedWrite: Throwable = _
