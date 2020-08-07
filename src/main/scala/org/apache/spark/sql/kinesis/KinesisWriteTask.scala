@@ -43,11 +43,66 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
       s"${KinesisSourceProvider.SINK_FLUSH_WAIT_TIME_MILLIS} has to be a positive integer")
   }
 
+  private val sinKBundleRecords = Try(producerConfiguration.getOrElse(
+    KinesisSourceProvider.SINK_SINK_BUNDLE_RECORDS,
+    KinesisSourceProvider.DEFAULT_SINK_BUNDLE_RECORDS).toBoolean).getOrElse {
+    throw new IllegalArgumentException(
+      s"${KinesisSourceProvider.SINK_SINK_BUNDLE_RECORDS} has to be a boolean value")
+  }
+
   private var failedWrite: Throwable = _
 
 
   def execute(iterator: Iterator[InternalRow]): Unit = {
+
+    if (sinKBundleRecords) {
+      bundleExecute(iterator)
+    } else {
+      singleExecute(iterator)
+    }
+
+  }
+
+  def bundleExecute(iterator: Iterator[InternalRow]): Unit = {
     producer = CachedKinesisProducer.getOrCreate(producerConfiguration)
+
+    val kinesisCallBack = new FutureCallback[UserRecordResult]() {
+
+      override def onFailure(t: Throwable): Unit = {
+        if (failedWrite == null && t!= null) {
+          failedWrite = t
+          logError(s"Writing to  $streamName failed due to ${t.getCause}")
+        }
+      }
+
+      override def onSuccess(result: UserRecordResult): Unit = {
+        logDebug(s"Successfully put records: \n " +
+          s"sequenceNumber=${result.getSequenceNumber}, \n" +
+          s"shardId=${result.getShardId}, \n" +
+          s"attempts=${result.getAttempts.size}")
+      }
+
+    }
+
+    while (iterator.hasNext && failedWrite == null) {
+      val currentRow = iterator.next()
+      val projectedRow = projection(currentRow)
+      val partitionKey = projectedRow.getString(0)
+      val data = projectedRow.getBinary(1)
+
+      while (producer.getOutstandingRecordsCount > 1e4) Thread.sleep(100)
+
+      val future = producer.addUserRecord(streamName, partitionKey, ByteBuffer.wrap(data))
+
+      Futures.addCallback(future, kinesisCallBack);
+    }
+
+  }
+
+
+  def singleExecute(iterator: Iterator[InternalRow]): Unit = {
+    producer = CachedKinesisProducer.getOrCreate(producerConfiguration)
+
     while (iterator.hasNext && failedWrite == null) {
       val currentRow = iterator.next()
       val projectedRow = projection(currentRow)
@@ -56,11 +111,10 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
 
       sendData(partitionKey, data)
     }
+
   }
 
-  def sendData(partitionKey: String, data: Array[Byte]): String = {
-    var sentSeqNumbers = new String
-
+  def sendData(partitionKey: String, data: Array[Byte]): Unit = {
     val future = producer.addUserRecord(streamName, partitionKey, ByteBuffer.wrap(data))
 
     val kinesisCallBack = new FutureCallback[UserRecordResult]() {
@@ -73,14 +127,17 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
       }
 
       override def onSuccess(result: UserRecordResult): Unit = {
-        val shardId = result.getShardId
-        sentSeqNumbers = result.getSequenceNumber
+        logDebug(s"Successfully put records: \n " +
+          s"sequenceNumber=${result.getSequenceNumber}, \n" +
+          s"shardId=${result.getShardId}, \n" +
+          s"attempts=${result.getAttempts.size}")
       }
+
     }
+
     Futures.addCallback(future, kinesisCallBack)
 
     producer.flushSync()
-    sentSeqNumbers
   }
 
   private def flushRecordsIfNecessary(): Unit = {

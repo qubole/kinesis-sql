@@ -51,10 +51,10 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
    */
 
   override def sourceSchema(
-      sqlContext: SQLContext,
-      schema: Option[StructType],
-      providerName: String,
-      parameters: Map[String, String]): (String, StructType) = {
+                             sqlContext: SQLContext,
+                             schema: Option[StructType],
+                             providerName: String,
+                             parameters: Map[String, String]): (String, StructType) = {
     val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
     validateStreamOptions(caseInsensitiveParams)
     require(schema.isEmpty, "Kinesis source has a fixed schema and cannot be set with a custom one")
@@ -62,11 +62,11 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
   }
 
   override def createSource(
-      sqlContext: SQLContext,
-      metadataPath: String,
-      schema: Option[StructType],
-      providerName: String,
-      parameters: Map[String, String]): Source = {
+                             sqlContext: SQLContext,
+                             metadataPath: String,
+                             schema: Option[StructType],
+                             providerName: String,
+                             parameters: Map[String, String]): Source = {
 
     val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
 
@@ -138,7 +138,7 @@ private[kinesis] class KinesisSourceProvider extends DataSourceRegister
         "Sink endpoint url is a required field")
     }
     if (caseInsensitiveParams.contains(SINK_AGGREGATION_ENABLED) && (
-        caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "true" &&
+      caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "true" &&
         caseInsensitiveParams(SINK_AGGREGATION_ENABLED).trim != "false"
       )) {
       throw new IllegalArgumentException(
@@ -238,11 +238,12 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME = "kinesis.executor.recordmaxbufferedtime"
   private[kinesis] val SINK_MAX_CONNECTIONS = "kinesis.executor.maxconnections"
   private[kinesis] val SINK_AGGREGATION_ENABLED = "kinesis.executor.aggregationenabled"
-  private[kinesis] val SINK_FLUSH_WAIT_TIME_MILLIS = "kniesis.executor.flushwaittimemillis"
+  private[kinesis] val SINK_FLUSH_WAIT_TIME_MILLIS = "kinesis.executor.flushwaittimemillis"
+  private[kinesis] val SINK_SINK_BUNDLE_RECORDS = "kinesis.executor.sink.bundle.records"
 
 
   private[kinesis] def getKinesisPosition(
-      params: Map[String, String]): InitialKinesisPosition = {
+                                           params: Map[String, String]): InitialKinesisPosition = {
     val CURRENT_TIMESTAMP = System.currentTimeMillis
     params.get(STARTING_POSITION_KEY).map(_.trim) match {
       case Some(position) if position.toLowerCase(Locale.ROOT) == "latest" =>
@@ -269,7 +270,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   private[kinesis] val DEFAULT_SINK_AGGREGATION: String = "true"
 
   private[kinesis] val DEFAULT_FLUSH_WAIT_TIME_MILLIS: String = "100"
+
+  private[kinesis] val DEFAULT_SINK_BUNDLE_RECORDS: String = "false"
+
 }
-
-
-
