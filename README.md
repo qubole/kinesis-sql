@@ -149,7 +149,8 @@ Refering $SPARK_HOME to the Spark installation directory.
 | kinesis.executor.recordMaxBufferedTime | 1000 (millis) | Specify the maximum buffered time of a record |
 | kinesis.executor.maxConnections | 1 | Specify the maximum connections to Kinesis | 
 | kinesis.executor.aggregationEnabled | true | Specify if records should be aggregated before sending them to Kinesis |
-| kniesis.executor.flushwaittimemillis | 100 | Wait time while flushing records to Kinesis on Task End |
+| kinesis.executor.flushwaittimemillis | 100 | Wait time while flushing records to Kinesis on Task End |
+| kinesis.executor.sink.bundle.records | false | Bundle all records from one micro-batch into PutRecords | 
 
 ## Roadmap
 *  We need to migrate to DataSource V2 APIs for MicroBatchExecution.

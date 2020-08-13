@@ -22,15 +22,14 @@ import java.util.concurrent.{ExecutionException, TimeUnit}
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
+import org.apache.spark.SparkEnv
+import org.apache.spark.internal.Logging
+
 import com.amazonaws.regions.RegionUtils
 import com.amazonaws.services.kinesis.AmazonKinesis
 import com.amazonaws.services.kinesis.producer.{KinesisProducer, KinesisProducerConfiguration}
 import com.google.common.cache._
 import com.google.common.util.concurrent.{ExecutionError, UncheckedExecutionException}
-
-import org.apache.spark.SparkEnv
-import org.apache.spark.internal.Logging
 
 private[kinesis] object CachedKinesisProducer extends Logging {
 
@@ -68,6 +67,11 @@ private[kinesis] object CachedKinesisProducer extends Logging {
       .filter(_.toLowerCase(Locale.ROOT).startsWith("kinesis."))
       .map { k => k.drop(8).toString -> producerConfiguration(k) }
       .toMap
+
+    val recordTtl = kinesisParams.getOrElse(
+      KinesisSourceProvider.SINK_RECORD_TTL,
+      KinesisSourceProvider.DEFAULT_SINK_RECORD_TTL)
+      .toLong
 
     val recordMaxBufferedTime = kinesisParams.getOrElse(
       KinesisSourceProvider.SINK_RECORD_MAX_BUFFERED_TIME,
@@ -123,6 +127,7 @@ private[kinesis] object CachedKinesisProducer extends Logging {
     }
 
     val kinesisProducer = new Producer(new KinesisProducerConfiguration()
+      .setRecordTtl(recordTtl)
       .setRecordMaxBufferedTime(recordMaxBufferedTime)
       .setMaxConnections(maxConnections)
       .setAggregationEnabled(aggregation)
