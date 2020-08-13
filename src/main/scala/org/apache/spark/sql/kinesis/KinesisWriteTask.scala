@@ -63,7 +63,18 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
 
   }
 
-  def bundleExecute(iterator: Iterator[InternalRow]): Unit = {
+  private def bundleExecute(iterator: Iterator[InternalRow]): Unit = {
+
+    val groupedIterator: iterator.GroupedIterator[InternalRow] = iterator.grouped(490)
+
+    while (groupedIterator.hasNext) {
+      val rowList = groupedIterator.next()
+      sendBundledData(rowList)
+    }
+
+  }
+
+  private def sendBundledData(rowList: List[InternalRow]): Unit = {
     producer = CachedKinesisProducer.getOrCreate(producerConfiguration)
 
     val kinesisCallBack = new FutureCallback[UserRecordResult]() {
@@ -81,26 +92,22 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
           s"shardId=${result.getShardId}, \n" +
           s"attempts=${result.getAttempts.size}")
       }
-
     }
 
-    while (iterator.hasNext && failedWrite == null) {
-      val currentRow = iterator.next()
-      val projectedRow = projection(currentRow)
+    for (r <- rowList) {
+
+      val projectedRow = projection(r)
       val partitionKey = projectedRow.getString(0)
       val data = projectedRow.getBinary(1)
 
-      while (producer.getOutstandingRecordsCount > 1e4) Thread.sleep(100)
-
       val future = producer.addUserRecord(streamName, partitionKey, ByteBuffer.wrap(data))
 
-      Futures.addCallback(future, kinesisCallBack);
-    }
+      Futures.addCallback(future, kinesisCallBack)
 
+    }
   }
 
-
-  def singleExecute(iterator: Iterator[InternalRow]): Unit = {
+  private def singleExecute(iterator: Iterator[InternalRow]): Unit = {
     producer = CachedKinesisProducer.getOrCreate(producerConfiguration)
 
     while (iterator.hasNext && failedWrite == null) {
@@ -114,7 +121,7 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
 
   }
 
-  def sendData(partitionKey: String, data: Array[Byte]): Unit = {
+  private def sendData(partitionKey: String, data: Array[Byte]): Unit = {
     val future = producer.addUserRecord(streamName, partitionKey, ByteBuffer.wrap(data))
 
     val kinesisCallBack = new FutureCallback[UserRecordResult]() {

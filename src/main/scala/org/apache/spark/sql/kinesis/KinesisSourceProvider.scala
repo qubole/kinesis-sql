@@ -235,6 +235,7 @@ private[kinesis] object KinesisSourceProvider extends Logging {
   // Sink Options
   private[kinesis] val SINK_STREAM_NAME_KEY = "streamname"
   private[kinesis] val SINK_ENDPOINT_URL = "endpointurl"
+  private[kinesis] val SINK_RECORD_TTL = "kinesis.executor.recordTtl"
   private[kinesis] val SINK_RECORD_MAX_BUFFERED_TIME = "kinesis.executor.recordmaxbufferedtime"
   private[kinesis] val SINK_MAX_CONNECTIONS = "kinesis.executor.maxconnections"
   private[kinesis] val SINK_AGGREGATION_ENABLED = "kinesis.executor.aggregationenabled"
@@ -261,6 +262,8 @@ private[kinesis] object KinesisSourceProvider extends Logging {
     "https://kinesis.us-east-1.amazonaws.com"
 
   private[kinesis] val DEFAULT_KINESIS_REGION_NAME: String = "us-east-1"
+
+  private[kinesis] val DEFAULT_SINK_RECORD_TTL: String = "30000"
 
   private[kinesis] val DEFAULT_SINK_RECORD_MAX_BUFFERED_TIME: String = "1000"
 
