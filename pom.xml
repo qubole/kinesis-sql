@@ -19,7 +19,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.qubole.spark</groupId>
-  <artifactId>spark-sql-kinesis_2.11</artifactId>
+  <artifactId>spark-sql-kinesis_2.12</artifactId>
   <version>1.1.4_spark-2.4-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Kinesis Integration for Structured Streaming</name>
@@ -50,7 +50,7 @@
     <connection>scm:git:git://github.com/qubole/kinesis-sql.git</connection>
     <url>http://github.com/qubole/kinesis-sql</url>
     <developerConnection>scm:git:git@github.com:qubole/kinesis-sql.git</developerConnection>
-    <tag>spark-sql-kinesis_2.11-0.5.0-spark_2.4</tag>
+    <tag>spark-sql-kinesis_2.12-0.5.0-spark_2.4</tag>
   </scm>
 
   <inceptionYear>2018</inceptionYear>
@@ -62,7 +62,7 @@
   <properties>
     <sbt.project.name>sql-kinesis</sbt.project.name>
     <spark.version>2.4.0</spark.version>
-    <scala.binary.version>2.11</scala.binary.version>
+    <scala.binary.version>2.12</scala.binary.version>
     <fasterxml.jackson.version>2.6.7</fasterxml.jackson.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -140,7 +140,7 @@
     </dependency>
     <dependency>
       <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_2.11</artifactId>
+      <artifactId>scalatest_2.12</artifactId>
       <version>3.0.3</version>
       <scope>test</scope>
     </dependency>
