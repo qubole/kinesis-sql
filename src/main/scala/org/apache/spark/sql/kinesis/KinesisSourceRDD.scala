@@ -165,7 +165,18 @@ private[kinesis] class KinesisSourceRDD(
       }
 
       def canFetchMoreRecords(currentTimestamp: Long): Boolean = {
-        currentTimestamp - startTimestamp < maxFetchTimeInMs
+        val iteratorType: String = sourcePartition.shardInfo.iteratorType
+        if (lastReadSequenceNumber.isEmpty && iteratorType != "AT_TIMESTAMP") {
+          // We are not using timestamp as offset. So we have to make sure that
+          //    a) we reach the tip of the stream if we have not able to
+          //    b) we read at-least one records
+          // so that we are never stuck in the loop where we have data near the tip of the stream
+          // but we are not spending enough time to read it
+          true
+        } else {
+          // honour the maxFetchTime provided in the options.
+          currentTimestamp - startTimestamp < maxFetchTimeInMs
+        }
       }
 
       def addDelayInFetchingRecords(currentTimestamp: Long): Unit = {
