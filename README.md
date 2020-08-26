@@ -130,7 +130,7 @@ Refering $SPARK_HOME to the Spark installation directory.
 | kinesis.executor.maxRecordPerRead |     10000 |  Maximum Number of records to fetch per getRecords API call  |
 | kinesis.executor.addIdleTimeBetweenReads	| false	| Add delay between two consecutive getRecords API call	|
 | kinesis.executor.idleTimeBetweenReadsInMs	| 1000	| Minimum delay between two consecutive getRecords	| 
-| kinesis.client.describeShardInterval |      1s (1 second) |  Minimum Interval between two DescribeStream API calls to consider resharding  |
+| kinesis.client.describeShardInterval |      1s (1 second) |  Minimum Interval between two ListShards API calls to consider resharding  |
 | kinesis.client.numRetries |     3 |  Maximum Number of retries for Kinesis API requests  |
 | kinesis.client.retryIntervalMs |     1000 |  Cool-off period before retrying Kinesis API  |
 | kinesis.client.maxRetryIntervalMs	| 10000	| Max Cool-off period between 2 retries	|
