@@ -72,6 +72,8 @@ private[kinesis] case class KinesisReader(
     readerOptions.getOrElse("client.maxRetryIntervalMs".toLowerCase(Locale.ROOT), "10000").toLong
   }
 
+  private val maxSupportedShardsPerStream = 10000;
+
   private var _amazonClient: AmazonKinesisClient = null
 
   private def getAmazonClient(): AmazonKinesisClient = {
@@ -169,17 +171,23 @@ private[kinesis] case class KinesisReader(
   }
 
   private def listShards(): Seq[Shard] = {
-
+    var nextToken = ""
+    val shards = new ArrayList[Shard]()
     val listShardsRequest = new ListShardsRequest
     listShardsRequest.setStreamName(streamName)
+    listShardsRequest.setMaxResults(maxSupportedShardsPerStream)
 
-    val listShardsResult: ListShardsResult = runUninterruptibly {
-      retryOrTimeout[ListShardsResult]( s"List shards") {
-          getAmazonClient.listShards(listShardsRequest)
+    do {
+      val listShardsResult: ListShardsResult = runUninterruptibly {
+        retryOrTimeout[ListShardsResult]( s"List shards") {
+            getAmazonClient.listShards(listShardsRequest)
+        }
       }
-    }
+      shards.addAll(listShardsResult.getShards)
+      nextToken = listShardsResult.getNextToken()
+    } while (!nextToken.isEmpty)
 
-    listShardsResult.getShards.asScala.toSeq
+    shards.asScala.toSeq
   }
 
   /*
