@@ -45,7 +45,6 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
 
   private var failedWrite: Throwable = _
 
-
   def execute(iterator: Iterator[InternalRow]): Unit = {
     producer = CachedKinesisProducer.getOrCreate(producerConfiguration)
     while (iterator.hasNext && failedWrite == null) {
@@ -79,7 +78,6 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
     }
     Futures.addCallback(future, kinesisCallBack)
 
-    producer.flushSync()
     sentSeqNumbers
   }
 
@@ -89,10 +87,11 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
         try {
           producer.flush()
           Thread.sleep(flushWaitTimeMills)
-          checkForErrors()
         } catch {
           case e: InterruptedException =>
-
+          // Do Nothing
+        } finally {
+          checkForErrors()
         }
       }
     }
