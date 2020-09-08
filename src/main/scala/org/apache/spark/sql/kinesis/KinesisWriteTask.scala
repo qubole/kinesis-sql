@@ -50,6 +50,13 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
       s"${KinesisSourceProvider.SINK_BUNDLE_RECORDS} has to be a boolean value")
   }
 
+  private val maxBundleRecords = Try(producerConfiguration.getOrElse(
+    KinesisSourceProvider.SINK_MAX_BUNDLE_RECORDS,
+    KinesisSourceProvider.DEFAULT_SINK_MAX_BUNDLE_RECORDS).toInt).getOrElse {
+    throw new IllegalArgumentException(
+      s"${KinesisSourceProvider.SINK_MAX_BUNDLE_RECORDS} has to be a integer value")
+  }
+
   private var failedWrite: Throwable = _
 
 
@@ -65,7 +72,7 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
 
   private def bundleExecute(iterator: Iterator[InternalRow]): Unit = {
 
-    val groupedIterator: iterator.GroupedIterator[InternalRow] = iterator.grouped(490)
+    val groupedIterator: iterator.GroupedIterator[InternalRow] = iterator.grouped(maxBundleRecords)
 
     while (groupedIterator.hasNext) {
       val rowList = groupedIterator.next()
