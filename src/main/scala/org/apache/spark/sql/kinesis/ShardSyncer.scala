@@ -63,12 +63,12 @@ private[kinesis] object ShardSyncer extends Logging {
         shardIdToShardMap.get(parentShardId) match {
           case None =>
             throw new IllegalStateException(s"ShardId $parentShardId is not closed. " +
-              s"This can happen due to a race condition between describeStream and a" +
+              s"This can happen due to a race condition between listShards and a" +
               s" reshard operation")
           case Some(parentShard: Shard) =>
             if (parentShard.getSequenceNumberRange().getEndingSequenceNumber == null) {
               throw new IllegalStateException(s"ShardId $parentShardId is not closed. " +
-                s"This can happen due to a race condition between describeStream and a " +
+                s"This can happen due to a race condition between listShards and a " +
                 s"reshard operation")
             }
         }

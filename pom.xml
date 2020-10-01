@@ -99,7 +99,12 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>amazon-kinesis-client</artifactId>
-      <version>1.8.10</version>
+      <version>1.9.0</version>
+    </dependency>
+    <dependency>
+    <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-core</artifactId>
+      <version>1.11.307</version>
     </dependency>
     <dependency>
       <groupId>com.amazonaws</groupId>
