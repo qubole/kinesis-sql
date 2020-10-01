@@ -2,25 +2,25 @@
 
 # Kinesis Connector for Structured Streaming 
 
-Implementation of Kinesis Source Provider in Spark Structured Streaming. [SPARK-18165](https://issues.apache.org/jira/browse/SPARK-18165) describes the need for such implementation. 
+Implementation of Kinesis Source Provider in Spark Structured Streaming. [SPARK-18165](https://issues.apache.org/jira/browse/SPARK-18165) describes the need for such implementation. More details on the implementation can be read in this [blog](https://www.qubole.com/blog/kinesis-connector-for-structured-streaming/)
 
 ## Downloading and Using the Connector
 
 The connector is available from the Maven Central repository. It can be used using the --packages option or the spark.jars.packages configuration property. Use the following connector artifact
 
-	com.qubole.spark/spark-sql-kinesis_2.11/1.1.3-spark_2.4
-
+	Spark 3.0: com.qubole.spark/spark-sql-kinesis_2.12/1.2.0-spark_3.0
+	Spark 2.4: com.qubole.spark/spark-sql-kinesis_2.11/1.1.4-spark_2.4
 
 ## Developer Setup
 Checkout kinesis-sql branch depending upon your Spark version. Use Master branch for the latest Spark version 
 
-###### Spark version 2.4.x
+###### Spark version 3.0.x
 	git clone git@github.com:qubole/kinesis-sql.git
-	git checkout 2.4.0
+	git checkout master
 	cd kinesis-sql
 	mvn install -DskipTests
 
-This will create *target/spark-sql-kinesis_2.11-2.4.0.jar* file which contains the connector code and its dependency jars.
+This will create *target/spark-sql-kinesis_2.12-*.jar* file which contains the connector code and its dependency jars.
 
 
 ## How to use it
