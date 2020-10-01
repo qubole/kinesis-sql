@@ -24,14 +24,12 @@ import scala.util.control.NonFatal
 
 import org.apache.spark.sql.execution.streaming.Offset
 import org.apache.spark.sql.execution.streaming.SerializedOffset
-import org.apache.spark.sql.sources.v2.reader.streaming.{Offset => OffsetV2, PartitionOffset}
-
 
  /*
   * @param shardsToOffsets
   */
 
-case class KinesisSourceOffset(shardsToOffsets: ShardOffsets) extends OffsetV2 {
+case class KinesisSourceOffset(shardsToOffsets: ShardOffsets) extends Offset {
   override def json: String = {
     val metadata = HashMap[String, String](
       "batchId" -> shardsToOffsets.batchId.toString,
@@ -51,11 +49,6 @@ case class KinesisSourceOffset(shardsToOffsets: ShardOffsets) extends OffsetV2 {
     Serialization.write(result)(KinesisSourceOffset.format)
     }
 }
-
-private[kinesis]
-case class KinesisSourcePartitionOffset(shardId: String, shardInfo: ShardInfo)
-  extends PartitionOffset
-
 
 object KinesisSourceOffset {
   implicit val format = Serialization.formats(NoTypeHints)

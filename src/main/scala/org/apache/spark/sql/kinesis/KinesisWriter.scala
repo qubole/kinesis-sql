@@ -34,7 +34,7 @@ private[kinesis] object KinesisWriter extends Logging {
             kinesisParameters: Map[String, String]): Unit = {
     val schema = queryExecution.analyzed.output
 
-    SQLExecution.withNewExecutionId(sparkSession, queryExecution) {
+    SQLExecution.withNewExecutionId(queryExecution) {
       queryExecution.toRdd.foreachPartition { iter =>
         val writeTask = new KinesisWriteTask(kinesisParameters, schema)
         Utils.tryWithSafeFinally(block = writeTask.execute(iter))(

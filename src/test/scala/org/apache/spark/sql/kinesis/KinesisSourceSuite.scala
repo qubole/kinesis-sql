@@ -22,13 +22,13 @@ import java.util.Locale
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.time.SpanSugar._
 
-import org.apache.spark.sql.streaming.{ProcessingTime, StreamTest}
+import org.apache.spark.sql.streaming.{StreamTest, Trigger}
 import org.apache.spark.sql.streaming.util.StreamManualClock
-import org.apache.spark.sql.test.SharedSQLContext
+import org.apache.spark.sql.test.SharedSparkSession
 
 
 abstract class KinesisSourceTest()
-  extends StreamTest with SharedSQLContext {
+  extends StreamTest with SharedSparkSession {
 
   protected var testUtils: KinesisTestUtils = _
 
@@ -70,7 +70,7 @@ abstract class KinesisSourceTest()
 
 }
 
-class KinesisSourceOptionsSuite extends StreamTest with SharedSQLContext {
+class KinesisSourceOptionsSuite extends StreamTest with SharedSparkSession {
 
   test("bad source options") {
     def testBadOptions(options: (String, String)*)(expectedMsgs: String*): Unit = {
@@ -202,7 +202,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
   testIfEnabled("Starting position is latest by default") {
     testUtils.pushData(Array("0"), aggregateTestData)
     // sleep for 1 s to avoid any concurrency issues
-    Thread.sleep(2000.toLong)
+    Thread.sleep(1000.toLong)
     val clock = new StreamManualClock
 
     val waitUntilBatchProcessed = AssertOnQuery { q =>
@@ -231,7 +231,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
     val result = kinesis.map(_.toInt)
     val testData = 1 to 5
     testStream(result)(
-      StartStream(ProcessingTime(100), clock),
+      StartStream(Trigger.ProcessingTime(100), clock),
       waitUntilBatchProcessed,
       AssertOnQuery { query =>
         testUtils.pushData(testData.map(_.toString).toArray, aggregateTestData)
@@ -278,7 +278,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
       val result = kinesis.map(_.toInt)
       val testData = 1 to 5
       testStream(result)(
-        StartStream(ProcessingTime(100), clock),
+        StartStream(Trigger.ProcessingTime(100), clock),
         waitUntilBatchProcessed, AssertOnQuery {
           query =>
         localTestUtils.pushData(testData.map(_.toString).toArray, aggregateTestData)
@@ -330,7 +330,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
       val testData2 = 11 to 20
       val testData3 = 21 to 25
       testStream(result)(
-        StartStream(ProcessingTime(100), clock),
+        StartStream(Trigger.ProcessingTime(100), clock),
         waitUntilBatchProcessed,
         AssertOnQuery { query =>
           localTestUtils.pushData(testData1.map(_.toString).toArray, aggregateTestData)
@@ -358,7 +358,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
           localTestUtils.pushData(testData2.map(_.toString).toArray, aggregateTestData)
           true
         },
-        StartStream(ProcessingTime(100), clock),
+        StartStream(Trigger.ProcessingTime(100), clock),
         AdvanceManualClock(100),
         waitUntilBatchProcessed,
         CheckAnswer(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20),
@@ -414,7 +414,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
       val testData2 = 11 to 20
       val testData3 = 21 to 25
       testStream(result)(
-        StartStream(ProcessingTime(100), clock),
+        StartStream(Trigger.ProcessingTime(100), clock),
         waitUntilBatchProcessed,
         AssertOnQuery { query =>
           localTestUtils.pushData(testData1.map(_.toString).toArray, aggregateTestData)
@@ -439,16 +439,14 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
           // We should have two closed shards and one open shard
           assert(mergedCloseShards.size == 2)
           assert(mergedOpenShards.size == 1)
-          Thread.sleep(2000.toLong)
           true
         },
         AssertOnQuery { query =>
           logInfo("Push Data ")
           localTestUtils.pushData(testData2.map(_.toString).toArray, aggregateTestData)
-          Thread.sleep(2000.toLong)
           true
         },
-        StartStream(ProcessingTime(100), clock),
+        StartStream(Trigger.ProcessingTime(100), clock),
         AdvanceManualClock(100),
         waitUntilBatchProcessed,
         // Data Added in new shards after stopping stream is not processed
@@ -540,7 +538,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
     val testData2 = 11 to 15
 
     testStream(result)(
-      StartStream(ProcessingTime(100), clock),
+      StartStream(Trigger.ProcessingTime(100), clock),
       waitUntilBatchProcessed,
       AssertOnQuery { query =>
         logInfo("Push Data ")
@@ -551,7 +549,7 @@ abstract class KinesisSourceSuite(aggregateTestData: Boolean) extends KinesisSou
       waitUntilBatchProcessed,
       CheckAnswer(6, 7, 8, 9, 10),
       StopStream,
-      StartStream(ProcessingTime(100), clock),
+      StartStream(Trigger.ProcessingTime(100), clock),
       waitUntilBatchProcessed,
       CheckAnswer(6, 7, 8, 9, 10),
       AssertOnQuery { query =>
@@ -572,6 +570,7 @@ abstract class KinesisStressSourceSuite(aggregateTestData: Boolean) extends Kine
   testIfEnabled("split and merge shards in a stream") {
     val localTestUtils = new KPLBasedKinesisTestUtils(1)
     localTestUtils.createStream()
+    val initialTestData = 1 to 5
     try {
       val clock = new StreamManualClock
 
@@ -606,7 +605,7 @@ abstract class KinesisStressSourceSuite(aggregateTestData: Boolean) extends Kine
       val testData3 = 21 to 100
 
       testStream(result)(
-        StartStream(ProcessingTime(100), clock),
+        StartStream(Trigger.ProcessingTime(100), clock),
         waitUntilBatchProcessed,
         AssertOnQuery { query =>
           logInfo("Push Data ")
@@ -719,7 +718,7 @@ class EmptyBatchTestSuite extends KinesisSourceTest {
     val testData2 = 11 to 15
 
     testStream(result)(
-      StartStream(ProcessingTime(100), clock),
+      StartStream(Trigger.ProcessingTime(100), clock),
       waitUntilBatchProcessed,
       AssertOnQuery { query =>
         logInfo("Push Data ")
@@ -776,7 +775,7 @@ class EmptyBatchTestSuite extends KinesisSourceTest {
     val testData = 6 to 10
 
     testStream(result)(
-      StartStream(ProcessingTime(100), clock),
+      StartStream(Trigger.ProcessingTime(100), clock),
       waitUntilBatchProcessed,
       AssertOnQuery { query =>
         logInfo("Push Data ")

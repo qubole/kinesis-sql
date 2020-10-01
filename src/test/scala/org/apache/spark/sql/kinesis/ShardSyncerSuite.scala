@@ -20,9 +20,9 @@ package org.apache.spark.sql.kinesis
 import com.amazonaws.services.kinesis.model.{SequenceNumberRange, Shard}
 
 import org.apache.spark.SparkFunSuite
-import org.apache.spark.sql.test.SharedSQLContext
+import org.apache.spark.sql.test.SharedSparkSession
 
-class ShardSyncerSuite extends SparkFunSuite with SharedSQLContext {
+class ShardSyncerSuite extends SparkFunSuite with SharedSparkSession {
 
   val latestShards = Seq(createShard("shard1", "1"))
   val prevShardInfo = Seq(new ShardInfo("shard0", new AfterSequenceNumber("0")))
