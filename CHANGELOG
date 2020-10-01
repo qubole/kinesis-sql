@@ -1,9 +1,14 @@
 Changelog
 =========
 
-
-(unreleased)
-------------
+kinesis_2.12-1.2.0_spark-3.0
+----------------------------
+- Support for Spark 3.0 and scala 2.12 (#92) [Vikram Agrawal, Vikram
+  Agrawal]
+- Switch to use Kinesis list-shards API (#89) [Chad Lagore]
+- Fix issue with slow kinesis sink. [Vikram Agrawal]
+- Remove lastReadSequenceNumber.isEmpty condition (#90) [Chad Lagore]
+- Fixing latency in kinesis sink (#81) [abhishekd0907]
 
 kinesis_2.11-1.1.4-spark_2.4
 ----------------------------
