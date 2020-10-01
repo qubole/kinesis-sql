@@ -20,7 +20,7 @@
 
   <groupId>com.qubole.spark</groupId>
   <artifactId>spark-sql-kinesis_2.12</artifactId>
-  <version>1.2.0_spark-3.0</version>
+  <version>1.2.1_spark-3.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Kinesis Integration for Structured Streaming</name>
   <description>Connector to read from and write into Kinesis from Structured Streaming Applications</description>
@@ -50,7 +50,7 @@
     <connection>scm:git:git://github.com/qubole/kinesis-sql.git</connection>
     <url>http://github.com/qubole/kinesis-sql</url>
     <developerConnection>scm:git:git@github.com:qubole/kinesis-sql.git</developerConnection>
-    <tag>spark-sql-kinesis_2.12-1.2.0_spark-3.0</tag>
+    <tag>spark-sql-kinesis_2.12-1.2.0-spark_3.0</tag>
   </scm>
 
   <inceptionYear>2018</inceptionYear>
