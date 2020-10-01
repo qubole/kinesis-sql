@@ -18,14 +18,15 @@
 
 package org.apache.spark.sql.kinesis
 
-import org.scalatest.PrivateMethodTester
 import scala.util.Try
+
+import org.scalatest.PrivateMethodTester
 
 import org.apache.spark.SparkException
 import org.apache.spark.sql.kinesis.KinesisTestUtils.{envVarNameForEnablingTests, shouldRunTests}
-import org.apache.spark.sql.test.SharedSQLContext
+import org.apache.spark.sql.test.SharedSparkSession
 
-class KinesisReaderSuite extends SharedSQLContext with PrivateMethodTester {
+class KinesisReaderSuite extends SharedSparkSession with PrivateMethodTester {
 
   protected var testUtils: KinesisTestUtils = _
 
@@ -71,8 +72,8 @@ class KinesisReaderSuite extends SharedSQLContext with PrivateMethodTester {
           BasicCredentials("access-key", "secret-key"),
           KinesisTestUtils.endpointUrl
         )
-        kinesisReader.getShards()
-      }
+      kinesisReader.getShards()
+    }
   }
 
   testIfEnabled("Should succeed for valid Credentials") {

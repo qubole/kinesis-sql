@@ -229,7 +229,7 @@ private[kinesis] class KinesisSourceRDD(
       }
       override protected def close(): Unit = synchronized {
         kinesisReader.close()
-       }
+      }
     }
 
     lazy val metadataCommitter: MetadataCommitter[ShardInfo] = {

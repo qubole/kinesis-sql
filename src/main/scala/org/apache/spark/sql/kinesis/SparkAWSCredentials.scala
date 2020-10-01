@@ -18,7 +18,7 @@ package org.apache.spark.sql.kinesis
 
 import com.amazonaws.auth._
 
-import org.apache.spark.annotation.InterfaceStability
+import org.apache.spark.annotation.Evolving
 import org.apache.spark.internal.Logging
 
 /**
@@ -107,10 +107,10 @@ private[kinesis] final case class STSCredentials(
   }
 }
 
-@InterfaceStability.Evolving
+@Evolving
 object SparkAWSCredentials {
 
-  @InterfaceStability.Evolving
+  @Evolving
   class Builder {
     private var basicCreds: Option[BasicCredentials] = None
     private var stsCreds: Option[STSCredentials] = None

@@ -19,15 +19,16 @@ package org.apache.spark.sql.kinesis
 
 import java.io.File
 
-import org.apache.hadoop.conf.Configuration
 import scala.language.implicitConversions
 
+import org.apache.hadoop.conf.Configuration
+
 import org.apache.spark.SparkFunSuite
-import org.apache.spark.sql.test.SharedSQLContext
+import org.apache.spark.sql.test.SharedSparkSession
 import org.apache.spark.util.SerializableConfiguration
 
 
-class HDFSMetaDataCommiterSuite extends SparkFunSuite with SharedSQLContext {
+class HDFSMetaDataCommiterSuite extends SparkFunSuite with SharedSparkSession {
 
   val testConf: Configuration = new Configuration()
   val serializedConf = new SerializableConfiguration(testConf)

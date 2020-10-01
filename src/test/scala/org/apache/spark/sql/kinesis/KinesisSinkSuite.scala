@@ -25,9 +25,9 @@ import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.kinesis.KinesisTestUtils.{envVarNameForEnablingTests, shouldRunTests}
 import org.apache.spark.sql.streaming._
 import org.apache.spark.sql.streaming.util.StreamManualClock
-import org.apache.spark.sql.test.SharedSQLContext
+import org.apache.spark.sql.test.SharedSparkSession
 
-abstract class KinesisSinkTest extends StreamTest with SharedSQLContext {
+abstract class KinesisSinkTest extends StreamTest with SharedSparkSession {
 
   protected var testUtils: KinesisTestUtils = _
 
@@ -66,7 +66,7 @@ abstract class KinesisSinkTest extends StreamTest with SharedSQLContext {
 
 }
 
-class KinesisSinkOptionsSuite extends StreamTest with SharedSQLContext {
+class KinesisSinkOptionsSuite extends StreamTest with SharedSparkSession {
 
   test("bad source options") {
     def testBadOptions(options: (String, String)*)(expectedMsgs: String*): Unit = {
@@ -216,7 +216,7 @@ class KinesisSinkSuite extends KinesisSinkTest {
       input.addData("1", "2", "3", "4", "5")
 
       testStream(reader)(
-        StartStream(ProcessingTime(100), clock),
+        StartStream(Trigger.ProcessingTime(100), clock),
         waitUntilBatchProcessed,
         AssertOnQuery { query =>
           logInfo("Pushing Data ")
