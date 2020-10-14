@@ -123,7 +123,7 @@ Refering $SPARK_HOME to the Spark installation directory.
 | awsSTSRoleARN |      -  |    AWS STS Role ARN for Kinesis describe, read record operations |
 | awsSTSSessionName |      -  |    AWS STS Session name for Kinesis describe, read record operations |
 | awsUseInstanceProfile | true |    Use Instance Profile Credentials if none of credentials provided |
-| startingPosition |      LATEST |    Starting Position in Kinesis to fetch data from. Possible values are "latest", "trim_horizon", "earliest" (alias for trim_horizon), or JSON serialized map shardId->KinesisPosition   |
+| startingPosition |      LATEST |    Starting Position in Kinesis to fetch data from. Possible values are "latest", "trim_horizon", "earliest" (alias for trim_horizon), timestamp in milliseconds, or JSON serialized map shardId->KinesisPosition   |
 | failondataloss| true | fail the streaming job if any active shard is missing or expired
 | kinesis.executor.maxFetchTimeInMs |     1000 |  Maximum time spent in executor to fetch record from Kinesis per Shard |
 | kinesis.executor.maxFetchRecordsPerShard |     100000 |  Maximum Number of records to fetch per shard  |
