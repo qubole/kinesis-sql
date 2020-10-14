@@ -189,6 +189,8 @@ private[kinesis] object KinesisSourceProvider extends Logging {
         InitialKinesisPosition.fromPredefPosition(new TrimHorizon)
       case Some(position) if position.toLowerCase(Locale.ROOT) == "earliest" =>
         InitialKinesisPosition.fromPredefPosition(new TrimHorizon)
+      case Some(timestamp) if timestamp.forall(_.isDigit) =>
+        InitialKinesisPosition.fromPredefPosition(new AtTimeStamp(timestamp))
       case Some(json) =>
         InitialKinesisPosition.fromCheckpointJson(json, new AtTimeStamp(CURRENT_TIMESTAMP))
       case None => InitialKinesisPosition.fromPredefPosition(new AtTimeStamp(CURRENT_TIMESTAMP))
