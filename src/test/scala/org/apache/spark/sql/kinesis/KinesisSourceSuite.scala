@@ -124,6 +124,9 @@ class KinesisSourceOptionsSuite extends StreamTest with SharedSparkSession {
       ("kinesis.executor.maxFetchTimeInMs", "10000"),
       ("kinesis.client.numRetries", "2")
     )
+    testKinesisOptions(
+      ("kinesis.client.clientExecutionTimeout", "20000")
+    )
   }
 
   test("test for failOnDataLoss") {

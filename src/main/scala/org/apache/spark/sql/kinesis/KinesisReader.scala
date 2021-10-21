@@ -22,7 +22,7 @@ import java.util
 import java.util.{ArrayList, Locale}
 import java.util.concurrent.{Executors, ThreadFactory}
 
-import com.amazonaws.AbortedException
+import com.amazonaws.{AbortedException, ClientConfiguration, ClientConfigurationFactory}
 import com.amazonaws.services.kinesis.AmazonKinesisClient
 import com.amazonaws.services.kinesis.clientlibrary.types.UserRecord
 import com.amazonaws.services.kinesis.model.{GetRecordsRequest, ListShardsRequest, Shard, _}
@@ -72,13 +72,20 @@ private[kinesis] case class KinesisReader(
     readerOptions.getOrElse("client.maxRetryIntervalMs".toLowerCase(Locale.ROOT), "10000").toLong
   }
 
+  private val clientExecutionTimeout: Int = {
+    readerOptions.get("client.clientExecutionTimeout".toLowerCase(Locale.ROOT))
+      .fold(ClientConfiguration.DEFAULT_CLIENT_EXECUTION_TIMEOUT)(_.toInt)
+  }
+
   private val maxSupportedShardsPerStream = 10000;
 
   private var _amazonClient: AmazonKinesisClient = null
 
   private def getAmazonClient(): AmazonKinesisClient = {
     if (_amazonClient == null) {
-      _amazonClient = new AmazonKinesisClient(kinesisCredsProvider.provider)
+      val config = new ClientConfigurationFactory().getConfig
+      config.setClientExecutionTimeout(clientExecutionTimeout)
+      _amazonClient = new AmazonKinesisClient(kinesisCredsProvider.provider, config)
       _amazonClient.setEndpoint(endpointUrl)
     }
     _amazonClient
