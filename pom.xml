@@ -19,12 +19,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.qubole.spark</groupId>
-  <artifactId>spark-sql-kinesis_2.12</artifactId>
+  <artifactId>kinesis-spark-connector_2.12</artifactId>
   <version>1.2.1_spark-3.2</version>
   <packaging>jar</packaging>
   <name>Kinesis Integration for Structured Streaming</name>
   <description>Connector to read from and write into Kinesis from Structured Streaming Applications</description>
-  <url>http://github.com/qubole/kinesis-sql</url>
+  <url>http://github.com/roncemer/kinesis-spark-connector</url>
 
 
   <developers>
@@ -41,16 +41,16 @@
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
-      <url>https://github.com/qubole/kinesis-sql/blob/master/LICENSE.txt</url>
+      <url>https://github.com/roncemer/kinesis-spark-connector/blob/master/LICENSE.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/qubole/kinesis-sql.git</connection>
-    <url>http://github.com/qubole/kinesis-sql</url>
-    <developerConnection>scm:git:git@github.com:qubole/kinesis-sql.git</developerConnection>
-    <tag>spark-sql-kinesis_2.12-1.2.0-spark_3.0</tag>
+    <connection>scm:git:git://github.com/roncemer/kinesis-spark-connector.git</connection>
+    <url>http://github.com/roncemer/kinesis-spark-connector</url>
+    <developerConnection>scm:git:git@github.com:roncemer/kinesis-spark-connector.git</developerConnection>
+    <tag>kinesis-spark-connector_2.12-1.2.1-spark_3.1</tag>
   </scm>
 
   <inceptionYear>2018</inceptionYear>
