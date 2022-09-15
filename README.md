@@ -1,4 +1,4 @@
-# Kinesis Connector for Structured Streaming 
+# Kinesis Connector for Spark Structured Streaming 
 
 Implementation of Kinesis Source Provider in Spark Structured Streaming. [SPARK-18165](https://issues.apache.org/jira/browse/SPARK-18165) describes the need for such implementation. More details on the implementation can be read in this [blog](https://www.qubole.com/blog/kinesis-connector-for-structured-streaming/)
 
