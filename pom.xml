@@ -18,8 +18,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.qubole.spark</groupId>
-  <artifactId>kinesis-spark-connector_2.12</artifactId>
+  <groupId>com.roncemer.spark</groupId>
+  <artifactId>kinesis-spark-connector-2.12</artifactId>
   <version>1.2.1_spark-3.2</version>
   <packaging>jar</packaging>
   <name>Kinesis Integration for Structured Streaming</name>
@@ -28,6 +28,14 @@
 
 
   <developers>
+    <developer>
+      <id>roncemer</id>
+      <organization>Ron Cemer</organization>
+      <organizationUrl>https://roncemer.com</organizationUrl>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
     <developer>
       <id>qubole</id>
       <organization>Qubole Inc.</organization>
@@ -41,7 +49,7 @@
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
-      <url>https://github.com/roncemer/kinesis-spark-connector/blob/master/LICENSE.txt</url>
+      <url>https://github.com/roncemer/kinesis-spark-connector/blob/master/LICENSE</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
@@ -50,7 +58,7 @@
     <connection>scm:git:git://github.com/roncemer/kinesis-spark-connector.git</connection>
     <url>http://github.com/roncemer/kinesis-spark-connector</url>
     <developerConnection>scm:git:git@github.com:roncemer/kinesis-spark-connector.git</developerConnection>
-    <tag>kinesis-spark-connector_2.12-1.2.1-spark_3.1</tag>
+    <tag>kinesis-spark-connector-2.12_1.2.1_spark-3.2</tag>
   </scm>
 
   <inceptionYear>2018</inceptionYear>
