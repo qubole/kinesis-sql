@@ -18,24 +18,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.roncemer.spark</groupId>
-  <artifactId>kinesis-spark-connector-2.12</artifactId>
+  <groupId>com.qubole.spark</groupId>
+  <artifactId>spark-sql-kinesis_2.12</artifactId>
   <version>1.2.1_spark-3.2</version>
   <packaging>jar</packaging>
   <name>Kinesis Integration for Structured Streaming</name>
   <description>Connector to read from and write into Kinesis from Structured Streaming Applications</description>
-  <url>http://github.com/roncemer/kinesis-spark-connector</url>
+  <url>http://github.com/qubole/kinesis-sql</url>
 
 
   <developers>
-    <developer>
-      <id>roncemer</id>
-      <organization>Ron Cemer</organization>
-      <organizationUrl>https://roncemer.com</organizationUrl>
-      <roles>
-        <role>developer</role>
-      </roles>
-    </developer>
     <developer>
       <id>qubole</id>
       <organization>Qubole Inc.</organization>
@@ -49,16 +41,16 @@
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
-      <url>https://github.com/roncemer/kinesis-spark-connector/blob/master/LICENSE</url>
+      <url>https://github.com/qubole/kinesis-sql/blob/master/LICENSE</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/roncemer/kinesis-spark-connector.git</connection>
-    <url>http://github.com/roncemer/kinesis-spark-connector</url>
-    <developerConnection>scm:git:git@github.com:roncemer/kinesis-spark-connector.git</developerConnection>
-    <tag>kinesis-spark-connector-2.12_1.2.1_spark-3.2</tag>
+    <connection>scm:git:git://github.com/qubole/kinesis-sql.git</connection>
+    <url>http://github.com/qubole/kinesis-sql</url>
+    <developerConnection>scm:git:git@github.com:qubole/kinesis-sql.git</developerConnection>
+    <tag>spark-sql-kinesis-2.12_1.2.1_spark-3.2</tag>
   </scm>
 
   <inceptionYear>2018</inceptionYear>
