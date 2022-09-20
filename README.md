@@ -19,7 +19,7 @@ Clone spark-sql-kinesis from the source repository on GitHub.
 	cd spark-sql-kinesis
 	mvn install -DskipTests
 
-This will create *target/spark-sql-kinesis-2.13-1.2.1_spark-3.2.jar* file which contains the connector code and its dependency jars.
+This will create *target/spark-sql-kinesis_2.13-1.2.1_spark-3.2.jar* file which contains the connector code and its dependency jars.
 
 
 ## How to use it
@@ -45,7 +45,7 @@ Refering $SPARK_HOME to the Spark installation directory.
 
 ###### Open Spark-Shell
 
-	$SPARK_HOME/bin/spark-shell --jars target/spark-sql-kinesis-2.13-1.2.1_spark-3.2.jar
+	$SPARK_HOME/bin/spark-shell --jars target/spark-sql-kinesis_2.13-1.2.1_spark-3.2.jar
 
 ###### Subscribe to Kinesis Source
 	// Subscribe the "test" stream
