@@ -21,7 +21,7 @@ import java.nio.ByteBuffer
 import scala.util.Try
 
 import com.amazonaws.services.kinesis.producer.{KinesisProducer, UserRecordResult}
-import com.google.common.util.concurrent.{FutureCallback, Futures, MoreExecutors}
+import com.google.common.util.concurrent.{FutureCallback, Futures}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
@@ -76,7 +76,7 @@ private[kinesis] class KinesisWriteTask(producerConfiguration: Map[String, Strin
         sentSeqNumbers = result.getSequenceNumber
       }
     }
-    Futures.addCallback(future, kinesisCallBack, MoreExecutors.directExecutor())
+    Futures.addCallback(future, kinesisCallBack)
 
     sentSeqNumbers
   }

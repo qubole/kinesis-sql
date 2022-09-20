@@ -33,7 +33,7 @@ import com.amazonaws.services.dynamodbv2.document.DynamoDB
 import com.amazonaws.services.kinesis.{AmazonKinesis, AmazonKinesisClient}
 import com.amazonaws.services.kinesis.model._
 import com.amazonaws.services.kinesis.producer.{KinesisProducer => KPLProducer, KinesisProducerConfiguration, UserRecordResult}
-import com.google.common.util.concurrent.{FutureCallback, Futures, MoreExecutors}
+import com.google.common.util.concurrent.{FutureCallback, Futures}
 
 import org.apache.spark.internal.Logging
 
@@ -366,7 +366,7 @@ private[kinesis] class KPLDataGenerator(regionName: String) extends KinesisDataG
           sentSeqNumbers += ((num, seqNumber))
         }
       }
-      Futures.addCallback(future, kinesisCallBack, MoreExecutors.directExecutor())
+      Futures.addCallback(future, kinesisCallBack)
     }
     producer.flushSync()
     shardIdToSeqNumbers.toMap
