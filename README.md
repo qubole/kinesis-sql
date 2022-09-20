@@ -8,18 +8,18 @@ This is a fork of https://github.com/qubole/kinesis-sql with the build configura
 
 The connector is available from the Maven Central repository. It can be used using the --packages option or the spark.jars.packages configuration property. Use the following connector artifact
 
-	Spark 3.2: com.roncemer.spark/kinesis-spark-connector_2.12/1.2.1-spark_3.2
+	Spark 3.2: com.roncemer.spark/spark-sql-kinesis_2.13/1.2.1-spark_3.2
 
 ## Developer Setup
-Checkout kinesis-spark-connector branch depending upon your Spark version. Use Master branch for the latest Spark version 
+Clone spark-sql-kinesis from the source repository on GitHub.
 
 ###### Spark version 3.2.x
-	git clone git@github.com:roncemer/kinesis-spark-connector.git
+	git clone git@github.com:roncemer/spark-sql-kinesis.git
 	git checkout master
-	cd kinesis-spark-connector
+	cd spark-sql-kinesis
 	mvn install -DskipTests
 
-This will create *target/kinesis-spark-connector-2.12-1.2.1_spark-3.2.jar* file which contains the connector code and its dependency jars.
+This will create *target/spark-sql-kinesis-2.13-1.2.1_spark-3.2.jar* file which contains the connector code and its dependency jars.
 
 
 ## How to use it
@@ -45,7 +45,7 @@ Refering $SPARK_HOME to the Spark installation directory.
 
 ###### Open Spark-Shell
 
-	$SPARK_HOME/bin/spark-shell --jars target/kinesis-spark-connector-2.12-1.2.1_spark-3.2.jar
+	$SPARK_HOME/bin/spark-shell --jars target/spark-sql-kinesis-2.13-1.2.1_spark-3.2.jar
 
 ###### Subscribe to Kinesis Source
 	// Subscribe the "test" stream

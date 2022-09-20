@@ -1,7 +1,7 @@
 Changelog
 =========
 
-kinesis-spark-connector_2.12-1.2.1_spark-3.2
+spark-sql-kinesis_2.13-1.2.1_spark-3.2
 ----------------------------
 - Update the build configuration and source code to build aginst Spark 3.2.1 [Ron Cemer]
 
