@@ -1,5 +1,10 @@
 [![Build Status](https://travis-ci.org/qubole/kinesis-sql.svg?branch=master)](https://travis-ci.org/qubole/kinesis-sql)
 
+## NOTE: This project is NO LONGER MAINTAINED. 
+
+[Ron Cremer](https://github.com/roncemer) has volunteered to maintain this project. Beginning with Spark 3.2, the new project is located here: https://github.com/roncemer/spark-sql-kinesis
+
+
 # Kinesis Connector for Structured Streaming 
 
 Implementation of Kinesis Source Provider in Spark Structured Streaming. [SPARK-18165](https://issues.apache.org/jira/browse/SPARK-18165) describes the need for such implementation. More details on the implementation can be read in this [blog](https://www.qubole.com/blog/kinesis-connector-for-structured-streaming/)

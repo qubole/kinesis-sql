@@ -1,6 +1,10 @@
 Changelog
 =========
 
+spark-sql-kinesis_2.13-1.2.1_spark-3.2
+----------------------------
+- Update README.md to indicate that this repo is no longer maintained, and include a link to the new repo.
+
 kinesis_2.12-1.2.0_spark-3.0
 ----------------------------
 - Support for Spark 3.0 and scala 2.12 (#92) [Vikram Agrawal, Vikram
