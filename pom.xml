@@ -104,12 +104,12 @@
     <dependency>
     <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-core</artifactId>
-      <version>1.11.655</version>
+      <version>1.12.190</version>
     </dependency>
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-sts</artifactId>
-      <version>1.11.271</version>
+      <version>1.12.190</version>
     </dependency>
     <dependency>
       <groupId>com.amazonaws</groupId>
